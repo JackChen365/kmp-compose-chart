@@ -2,7 +2,19 @@
 
 A simple but powerful KMP compose chart library.
 
-## Preview
+### Feature list
+* Chart component support scroll, zoom, layout policy, interaction, custom dataset...
+* Support chart custom component and reuse component.
+* Support draw element gesture.
+  - Tap, Double tap, long press.
+* Chart scroll control.
+* Supprt draw element interaction.
+  - Tooltips.
+  - Press/Hover.
+  - Draw element animation.
+* Chart animation.
+* Combined chart.
+* Chart theme.
 
 ### BarChart
 
@@ -38,4 +50,11 @@ A simple but powerful KMP compose chart library.
 ### CombinedChart
 
 <img width="1155" alt="image" src="https://github.com/JackChen365/kmp-compose-chart/assets/12761044/e280bb5c-f0cf-4bf1-a5f6-ce568a8871fc">
+
+### Chart animation
+
+
+
+
+
 
