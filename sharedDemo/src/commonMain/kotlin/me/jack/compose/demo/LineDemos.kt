@@ -31,7 +31,6 @@ import me.jack.compose.chart.component.GridDividerSpec
 import me.jack.compose.chart.component.LineChart
 import me.jack.compose.chart.component.LineChartContent
 import me.jack.compose.chart.component.StockLineChart
-import me.jack.compose.chart.component.TapGestures
 import me.jack.compose.chart.component.toPx
 import me.jack.compose.chart.measure.rememberFixedOverlayContentMeasurePolicy
 import me.jack.compose.chart.model.LineData
@@ -64,17 +63,13 @@ class LineDemos {
             LineChart(
                 modifier = Modifier.height(240.dp),
                 contentMeasurePolicy = rememberFixedOverlayContentMeasurePolicy(32.dp.toPx()),
-                chartDataset = dataset,
-                tapGestures = TapGestures<LineData>().onTap {
-                }
+                chartDataset = dataset
             )
             Spacer(modifier = Modifier.height(8.dp))
             CurveLineChart(
                 modifier = Modifier.height(240.dp),
                 contentMeasurePolicy = rememberFixedOverlayContentMeasurePolicy(32.dp.toPx()),
-                chartDataset = dataset,
-                tapGestures = TapGestures<LineData>().onTap {
-                }
+                chartDataset = dataset
             )
         }
     }
@@ -98,9 +93,7 @@ class LineDemos {
             CurveLineChart(
                 modifier = Modifier.height(240.dp),
                 contentMeasurePolicy = rememberFixedOverlayContentMeasurePolicy(32.dp.toPx()),
-                chartDataset = dataset,
-                tapGestures = TapGestures<LineData>().onTap {
-                }
+                chartDataset = dataset
             )
             Spacer(modifier = Modifier.weight(1f))
             Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
@@ -186,9 +179,7 @@ class LineDemos {
             LineChart(
                 modifier = Modifier.height(240.dp),
                 contentMeasurePolicy = rememberFixedOverlayContentMeasurePolicy(32.dp.toPx()),
-                chartDataset = animatableDataset(scope),
-                tapGestures = TapGestures<LineData>().onTap {
-                }
+                chartDataset = animatableDataset(scope)
             ) {
                 LaunchAnimation(scope)
                 LineChartContent()
@@ -196,9 +187,7 @@ class LineDemos {
             CurveLineChart(
                 modifier = Modifier.height(240.dp),
                 contentMeasurePolicy = rememberFixedOverlayContentMeasurePolicy(32.dp.toPx()),
-                chartDataset = animatableDataset(scope),
-                tapGestures = TapGestures<LineData>().onTap {
-                }
+                chartDataset = animatableDataset(scope)
             ) {
                 LaunchAnimation(scope)
                 CurveLineChartContent()
@@ -257,9 +246,7 @@ class LineDemos {
             StockLineChart(
                 modifier = Modifier.height(240.dp),
                 contentMeasurePolicy = rememberFixedOverlayContentMeasurePolicy(8.dp.toPx()),
-                chartDataset = dataset,
-                tapGestures = TapGestures<LineData>().onTap {
-                }
+                chartDataset = dataset
             ) {
                 ChartGridDividerComponent(
                     GridDividerSpec(
@@ -271,9 +258,7 @@ class LineDemos {
                         color = Color.LightGray.copy(0.2f),
                     )
                 )
-                ChartAverageAcrossRanksComponent(
-                    textColor = Color.White
-                ) { it.value }
+                ChartAverageAcrossRanksComponent{ it.value }
                 ChartContent()
             }
         }

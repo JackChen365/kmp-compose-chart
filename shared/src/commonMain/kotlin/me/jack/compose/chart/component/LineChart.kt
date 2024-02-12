@@ -1,5 +1,6 @@
 package me.jack.compose.chart.component
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -7,6 +8,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawStyle
 import androidx.compose.ui.graphics.drawscope.Fill
@@ -25,8 +27,8 @@ import me.jack.compose.chart.draw.interaction.elementInteraction
 import me.jack.compose.chart.interaction.asElementInteraction
 import me.jack.compose.chart.measure.ChartContentMeasurePolicy
 import me.jack.compose.chart.measure.rememberFixedContentMeasurePolicy
-import me.jack.compose.chart.scope.ChartDataset
 import me.jack.compose.chart.model.LineData
+import me.jack.compose.chart.scope.ChartDataset
 import me.jack.compose.chart.scope.LineChartScope
 import me.jack.compose.chart.scope.SingleChartScope
 import me.jack.compose.chart.scope.currentRange
@@ -39,11 +41,19 @@ import kotlin.math.max
 
 private val DEFAULT_CROSS_AXIS_SIZE = 32.dp
 
-class LineSpec(
+open class LineSpec(
+    val backgroundColor: Color = Color.White,
     val strokeWidth: Dp = 4.dp,
     val circleRadius: Dp = 8.dp,
     val pressAlpha: Float = 0.4f
 ) : ChartComponentSpec
+
+class DarkLineSpec(
+    backgroundColor: Color = Color.DarkGray,
+    strokeWidth: Dp = 4.dp,
+    circleRadius: Dp = 8.dp,
+    pressAlpha: Float = 0.4f
+) : LineSpec(backgroundColor, strokeWidth, circleRadius, pressAlpha)
 
 class CurveLineSpec(
     val strokeWidth: Dp = 4.dp,
@@ -98,7 +108,7 @@ fun LineChart(
     content: @Composable SingleChartScope<LineData>.() -> Unit = LineChartContent
 ) {
     SingleChartLayout(
-        modifier = modifier,
+        modifier = modifier.background(lineSpec.backgroundColor),
         chartContext = ChartContext.chartInteraction(remember { MutableInteractionSource() })
             .scrollable(
                 orientation = contentMeasurePolicy.orientation

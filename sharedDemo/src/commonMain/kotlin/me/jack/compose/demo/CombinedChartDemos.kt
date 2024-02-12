@@ -169,7 +169,7 @@ class CombinedChartDemos {
                     spec = IndicationSpec(textSize = 8.sp)
                 )
                 CandleStickBarComponent()
-                ChartAverageAcrossRanksComponent(textColor = Color.White) { it.high }
+                ChartAverageAcrossRanksComponent { it.high }
                 CandleStickLeftSideLabel()
             }
         }

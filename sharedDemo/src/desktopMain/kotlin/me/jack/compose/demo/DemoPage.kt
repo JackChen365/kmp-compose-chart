@@ -75,6 +75,7 @@ fun DesktopAppDemo(
                         "pie_chart2.svg",
                         "stock_chart.svg",
                         "table_chart_view.svg",
+                        "palette.svg",
                         "finance.svg",
                         "stacked_bar_chart.svg",
                         "show_chart.svg"

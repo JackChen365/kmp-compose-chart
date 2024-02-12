@@ -241,7 +241,7 @@ open class IndicationSpec(
 class DarkIndicationSpec(
     backgroundColor: Color = Color.LightGray,
     textColor: Color = Color.White,
-    textSize: TextUnit = 16.sp,
+    textSize: TextUnit = 8.sp,
     size: Dp = 32.dp
 ) : IndicationSpec(backgroundColor, textColor, textSize, size)
 
@@ -311,20 +311,32 @@ fun Modifier.chartCrossAxisSize(
     }
 }
 
-@Composable
-fun ChartScope.ChartAverageAcrossRanksComponent(
+open class AverageAcrossRanksSpec(
+    val backgroundColor: Color = Color.LightGray,
+    val level: Int = 10,
+    val size: Dp = 32.dp,
+    val textColor: Color = Color.Black,
+    val textSize: TextUnit = 12.sp
+) : ChartComponentSpec
+
+class DarkAverageAcrossRanksSpec(
+    backgroundColor: Color = Color.DarkGray,
     level: Int = 10,
     size: Dp = 32.dp,
-    textColor: Color = Color.Black,
-    textSize: TextUnit = 12.sp,
+    textColor: Color = Color.White,
+    textSize: TextUnit = 12.sp
+) : AverageAcrossRanksSpec(backgroundColor, level, size, textColor, textSize)
+
+@Composable
+fun ChartScope.ChartAverageAcrossRanksComponent(
+    spec: AverageAcrossRanksSpec = LocalChartTheme.current.averageAcrossRanksSpec,
     maxValue: Float
 ) {
     ChartAverageAcrossRanksComponent(
         modifier = Modifier.clipToBounds()
-            .chartCrossAxisSize(this, size),
-        level = level,
-        textColor = textColor,
-        textSize = textSize,
+            .background(color = spec.backgroundColor)
+            .chartCrossAxisSize(this, spec.size),
+        spec = spec,
         isHorizontal = isHorizontal,
         maxValue = maxValue
     )
@@ -332,19 +344,15 @@ fun ChartScope.ChartAverageAcrossRanksComponent(
 
 @Composable
 fun <T> SingleChartScope<T>.ChartAverageAcrossRanksComponent(
-    level: Int = 10,
-    size: Dp = 32.dp,
-    textColor: Color = Color.Black,
-    textSize: TextUnit = 12.sp,
+    spec: AverageAcrossRanksSpec = LocalChartTheme.current.averageAcrossRanksSpec,
     maxValueEvaluator: (T) -> Float
 ) {
     val maxValue = chartDataset.rememberMaxValue(maxValueEvaluator)
     ChartAverageAcrossRanksComponent(
         modifier = Modifier.clipToBounds()
-            .chartCrossAxisSize(this, size),
-        level = level,
-        textColor = textColor,
-        textSize = textSize,
+            .background(color = spec.backgroundColor)
+            .chartCrossAxisSize(this, spec.size),
+        spec = spec,
         isHorizontal = isHorizontal,
         maxValue = maxValue
     )
@@ -353,9 +361,7 @@ fun <T> SingleChartScope<T>.ChartAverageAcrossRanksComponent(
 @Composable
 fun ChartAverageAcrossRanksComponent(
     modifier: Modifier = Modifier,
-    level: Int = 10,
-    textColor: Color = Color.Black,
-    textSize: TextUnit = 12.sp,
+    spec: AverageAcrossRanksSpec = LocalChartTheme.current.averageAcrossRanksSpec,
     isHorizontal: Boolean = true,
     maxValue: Float
 ) {
@@ -363,12 +369,12 @@ fun ChartAverageAcrossRanksComponent(
     Canvas(
         modifier = modifier
     ) {
-        val textItemSize = this.size.maxDimension / level
-        for (i in 0 until level) {
-            val levelSize = (maxValue / level * (level - i))
+        val textItemSize = this.size.maxDimension / spec.level
+        for (i in 0 until spec.level) {
+            val levelSize = (maxValue / spec.level * (spec.level - i))
             val textLayoutResult = textMeasurer.measure(
                 text = levelSize.toInt().toString(),
-                style = TextStyle(color = textColor, fontSize = textSize)
+                style = TextStyle(color = spec.textColor, fontSize = spec.textSize)
             )
             drawText(
                 textLayoutResult = textLayoutResult,
@@ -376,7 +382,7 @@ fun ChartAverageAcrossRanksComponent(
                     (this.size.width - textLayoutResult.size.width) / 2f,
                     i * textItemSize + (textItemSize - textLayoutResult.size.height) / 2
                 ) else Offset(
-                    (level - i - 1) * textItemSize + (textItemSize - textLayoutResult.size.width) / 2,
+                    (spec.level - i - 1) * textItemSize + (textItemSize - textLayoutResult.size.width) / 2,
                     (this.size.height - textLayoutResult.size.height) / 2f,
                 )
             )

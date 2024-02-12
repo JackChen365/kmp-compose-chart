@@ -4,17 +4,20 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
+import me.jack.compose.chart.component.AverageAcrossRanksSpec
 import me.jack.compose.chart.component.BorderSpec
 import me.jack.compose.chart.component.BubbleSpec
 import me.jack.compose.chart.component.CandleStickBarSpec
 import me.jack.compose.chart.component.CandleStickLeftSideSpec
 import me.jack.compose.chart.component.CandleStickSpec
 import me.jack.compose.chart.component.CurveLineSpec
+import me.jack.compose.chart.component.DarkAverageAcrossRanksSpec
 import me.jack.compose.chart.component.DarkBorderSpec
 import me.jack.compose.chart.component.DarkCandleStickBarSpec
 import me.jack.compose.chart.component.DarkCandleStickLeftSideSpec
 import me.jack.compose.chart.component.DarkGridDividerSpec
 import me.jack.compose.chart.component.DarkIndicationSpec
+import me.jack.compose.chart.component.DarkLineSpec
 import me.jack.compose.chart.component.DarkMarkerSpec
 import me.jack.compose.chart.component.DonutSpec
 import me.jack.compose.chart.component.GridDividerSpec
@@ -29,7 +32,7 @@ fun ChartTheme(
     content: @Composable () -> Unit
 ) {
     val chartTheme = if (darkTheme) {
-        ChartTheme()
+        LightChartTheme()
     } else {
         DarkChartTheme()
     }
@@ -41,10 +44,10 @@ fun ChartTheme(
 }
 
 val LocalChartTheme = staticCompositionLocalOf {
-    ChartTheme()
+    LightChartTheme()
 }
 
-open class ChartTheme(
+open class LightChartTheme(
     val borderSpec: BorderSpec = BorderSpec(),
     val bubbleSpec: BubbleSpec = BubbleSpec(),
     val candleStickLeftSideSpec: CandleStickLeftSideSpec = CandleStickLeftSideSpec(),
@@ -54,6 +57,7 @@ open class ChartTheme(
     val donutSpec: DonutSpec = DonutSpec(),
     val gridDividerSpec: GridDividerSpec = GridDividerSpec(),
     val indicationSpec: IndicationSpec = IndicationSpec(),
+    val averageAcrossRanksSpec: AverageAcrossRanksSpec = AverageAcrossRanksSpec(),
     val lineSpec: LineSpec = LineSpec(),
     val markerSpec: MarkerSpec = MarkerSpec(),
     val pieSpec: PieSpec = PieSpec()
@@ -65,19 +69,21 @@ class DarkChartTheme(
     candleStickBarSpec: CandleStickBarSpec = DarkCandleStickBarSpec(),
     gridDividerSpec: GridDividerSpec = DarkGridDividerSpec(),
     indicationSpec: IndicationSpec = DarkIndicationSpec(),
+    averageAcrossRanksSpec: AverageAcrossRanksSpec = DarkAverageAcrossRanksSpec(),
     markerSpec: MarkerSpec = DarkMarkerSpec(),
     bubbleSpec: BubbleSpec = BubbleSpec(),
     candleStickSpec: CandleStickSpec = CandleStickSpec(),
     curveLineSpec: CurveLineSpec = CurveLineSpec(),
     donutSpec: DonutSpec = DonutSpec(),
-    lineSpec: LineSpec = LineSpec(),
+    lineSpec: LineSpec = DarkLineSpec(),
     pieSpec: PieSpec = PieSpec()
-) : ChartTheme(
+) : LightChartTheme(
     borderSpec = borderSpec,
     candleStickLeftSideSpec = candleStickLeftSideLabelSpec,
     candleStickBarSpec = candleStickBarSpec,
     gridDividerSpec = gridDividerSpec,
     indicationSpec = indicationSpec,
+    averageAcrossRanksSpec = averageAcrossRanksSpec,
     markerSpec = markerSpec,
     bubbleSpec = bubbleSpec,
     candleStickSpec = candleStickSpec,

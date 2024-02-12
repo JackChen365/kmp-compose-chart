@@ -40,7 +40,6 @@ fun rememberFixedOverlayContentMeasurePolicy(
     FixedOverlayContentMeasurePolicy(fixedRowSize, divideSize, orientation)
 }
 
-
 @Composable
 fun rememberBoxChartContentMeasurePolicy() = remember {
     BoxChartContentMeasurePolicy()
