@@ -53,8 +53,10 @@ A simple but powerful KMP compose chart library.
 
 ### Chart animation
 
+https://github.com/JackChen365/kmp-compose-chart/assets/12761044/6326dec0-c8ca-43bb-90a4-96a462b5a0fa
 
+https://github.com/JackChen365/kmp-compose-chart/assets/12761044/5bd756af-eee4-4827-8855-8674d0d679a2
 
+### Chart scroll control
 
-
-
+https://github.com/JackChen365/kmp-compose-chart/assets/12761044/61193c2f-0e9a-4be8-80ec-aa325d54de7b
