@@ -2,7 +2,19 @@
 
 A simple but powerful KMP compose chart library.
 
-## Preview
+### Feature list
+* Chart component support scroll, zoom, layout policy, interaction, custom dataset...
+* Support chart custom component and reuse component.
+* Support draw element gesture.
+  - Tap, Double tap, long press.
+* Chart scroll control.
+* Supprt draw element interaction.
+  - Tooltips.
+  - Press/Hover.
+  - Draw element animation.
+* Chart animation.
+* Combined chart.
+* Chart theme.
 
 ### BarChart
 
@@ -20,7 +32,7 @@ A simple but powerful KMP compose chart library.
 
 ### BubbleChart
 
-<img width="1157" alt="image" src="https://github.com/JackChen365/kmp-compose-chart/assets/12761044/4f65ce25-a8d1-496b-b5b9-812f6d9b50c1">
+![WX20240212-214450@2x](https://github.com/JackChen365/kmp-compose-chart/assets/12761044/d001dc4a-75ff-4e8f-8993-196c30f7639c)
 
 ### DonutChart
 
@@ -38,4 +50,23 @@ A simple but powerful KMP compose chart library.
 ### CombinedChart
 
 <img width="1155" alt="image" src="https://github.com/JackChen365/kmp-compose-chart/assets/12761044/e280bb5c-f0cf-4bf1-a5f6-ce568a8871fc">
+
+### Chart animation
+
+https://github.com/JackChen365/kmp-compose-chart/assets/12761044/6326dec0-c8ca-43bb-90a4-96a462b5a0fa
+
+https://github.com/JackChen365/kmp-compose-chart/assets/12761044/5bd756af-eee4-4827-8855-8674d0d679a2
+
+### Chart scroll control
+
+https://github.com/JackChen365/kmp-compose-chart/assets/12761044/61193c2f-0e9a-4be8-80ec-aa325d54de7b
+
+### Chart zoom
+
+https://github.com/JackChen365/kmp-compose-chart/assets/12761044/63d54c2c-9299-4471-be08-05d0915b7473
+
+### Chart draw element interaction
+
+https://github.com/JackChen365/kmp-compose-chart/assets/12761044/527dfe4b-a67c-44b7-998a-c95d7cf5ac49
+
 
