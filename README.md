@@ -32,7 +32,7 @@ A simple but powerful KMP compose chart library.
 
 ### BubbleChart
 
-<img width="1157" alt="image" src="https://github.com/JackChen365/kmp-compose-chart/assets/12761044/4f65ce25-a8d1-496b-b5b9-812f6d9b50c1">
+![WX20240212-214450@2x](https://github.com/JackChen365/kmp-compose-chart/assets/12761044/d001dc4a-75ff-4e8f-8993-196c30f7639c)
 
 ### DonutChart
 
@@ -60,3 +60,13 @@ https://github.com/JackChen365/kmp-compose-chart/assets/12761044/5bd756af-eee4-4
 ### Chart scroll control
 
 https://github.com/JackChen365/kmp-compose-chart/assets/12761044/61193c2f-0e9a-4be8-80ec-aa325d54de7b
+
+### Chart zoom
+
+https://github.com/JackChen365/kmp-compose-chart/assets/12761044/63d54c2c-9299-4471-be08-05d0915b7473
+
+### Chart draw element interaction
+
+https://github.com/JackChen365/kmp-compose-chart/assets/12761044/527dfe4b-a67c-44b7-998a-c95d7cf5ac49
+
+
