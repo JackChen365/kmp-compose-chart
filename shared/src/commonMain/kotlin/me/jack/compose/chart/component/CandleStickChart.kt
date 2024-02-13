@@ -3,7 +3,12 @@ package me.jack.compose.chart.component
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -26,8 +31,6 @@ import me.jack.compose.chart.context.scrollable
 import me.jack.compose.chart.context.zoom
 import me.jack.compose.chart.draw.DrawElement
 import me.jack.compose.chart.draw.LazyChartCanvas
-import me.jack.compose.chart.draw.interaction.elementInteraction
-import me.jack.compose.chart.interaction.asElementInteraction
 import me.jack.compose.chart.measure.rememberFixedContentMeasurePolicy
 import me.jack.compose.chart.model.CandleData
 import me.jack.compose.chart.scope.CandleStickChartScope
@@ -36,6 +39,7 @@ import me.jack.compose.chart.scope.ChartDataset
 import me.jack.compose.chart.scope.SingleChartScope
 import me.jack.compose.chart.scope.rememberMaxValue
 import me.jack.compose.chart.scope.rememberMinValue
+import me.jack.compose.chart.scope.withChartElementInteraction
 import me.jack.compose.chart.theme.LocalChartTheme
 import kotlin.math.absoluteValue
 import kotlin.math.min
@@ -136,7 +140,7 @@ fun CandleStickChartScope.ChartCandleStickComponent(
     ) { candleData ->
         val candleBlockSize = size.height / highestValue
         // we calculate the lastVisibleItemIndex due to other places need it.
-        clickableRect(currentLeftTopOffset, childSize)
+        clickableRectWithInteraction(currentLeftTopOffset, childSize)
         drawRect(
             color = Color.Blue whenPressedAnimateTo Color.Blue.copy(alpha = 0.4f),
             topLeft = Offset(
@@ -165,22 +169,19 @@ fun CandleStickChartScope.ChartCandleStickComponent(
 
 @Composable
 fun CandleStickChartScope.ChartCandleDataMarkerComponent() {
-    val elementInteraction = chartContext.elementInteraction.asElementInteraction<CandleData>()
-    val currentItem = elementInteraction?.currentItem
-    val drawElement = elementInteraction?.drawElement
-    if (null != currentItem && null != drawElement && drawElement is DrawElement.Rect) {
+    withChartElementInteraction<CandleData, DrawElement.Rect> { drawElement, currentItem, _ ->
         HoverMarkerComponent(
             topLeft = drawElement.topLeft,
             contentSize = drawElement.size,
         )
         MarkerDashLineComponent(
+            drawElement = drawElement,
             topLeft = drawElement.topLeft,
             contentSize = drawElement.size,
-            focusPoint = drawElement.focusPoint
         )
         MarkerComponent(
-            leftTop = drawElement.topLeft,
-            size = drawElement.size,
+            topLeft = drawElement.topLeft,
+            contentSize = drawElement.size,
             focusPoint = drawElement.focusPoint,
             displayInfo = "(" + currentItem.high + "-" + currentItem.low + ")" +
                     "(" + currentItem.open + "-" + currentItem.close + ")"

@@ -1,7 +1,15 @@
 package me.jack.compose.chart.component
 
+import androidx.compose.animation.core.animateOffsetAsState
+import androidx.compose.animation.core.animateSizeAsState
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
@@ -12,19 +20,38 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.*
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.round
+import androidx.compose.ui.unit.sp
+import me.jack.compose.chart.context.pressState
 import me.jack.compose.chart.draw.ChartCanvas
-import me.jack.compose.chart.draw.interaction.longPressTapState
+import me.jack.compose.chart.draw.DrawElement
+import me.jack.compose.chart.draw.interaction.hoverState
 import me.jack.compose.chart.scope.ChartScope
 import me.jack.compose.chart.scope.SingleChartScope
 import me.jack.compose.chart.scope.isHorizontal
 import me.jack.compose.chart.theme.LocalChartTheme
+import kotlin.math.roundToInt
+import kotlin.math.sqrt
 
 open class MarkerSpec(
     val tooltipSize: DpSize = DpSize(width = 80.dp, height = 40.dp),
@@ -57,12 +84,15 @@ class DarkMarkerSpec(
 @Composable
 fun ChartScope.MarkerComponent(
     spec: MarkerSpec = LocalChartTheme.current.markerSpec,
-    leftTop: Offset,
-    size: Size,
+    topLeft: Offset,
+    contentSize: Size,
     displayInfo: String,
     focusPoint: Offset = Offset.Unspecified
 ) {
-    if (!chartContext.longPressTapState.value) return
+    if (!chartContext.hoverState.value && !chartContext.pressState.value) return
+    val contentSizeState by animateSizeAsState(contentSize)
+    val topLeftState by animateOffsetAsState(topLeft)
+    val focusPointState by animateOffsetAsState(focusPoint)
     val tooltipWidth = spec.tooltipSize.width.toPx()
     val tooltipHeight = spec.tooltipSize.height.toPx()
     val tooltipContentSize by remember {
@@ -76,39 +106,21 @@ fun ChartScope.MarkerComponent(
     var alignment = TooltipAlignment.Bottom
     val offset: IntOffset
     if (isHorizontal) {
-        offset = if (Offset.Unspecified == focusPoint)
-            IntOffset(
-                x = (leftTop.x - tooltipContentSize.width / 2 + size.width / 2)
-                    .coerceIn(0f, contentSize.width - tooltipContentSize.width)
-                    .toInt(),
-                y = (leftTop.y - tooltipContentSize.height - spec.tooltipTickSize.toPx())
-                    .coerceAtLeast(0f)
-                    .toInt()
-            )
-        else IntOffset(
-            x = (focusPoint.x - tooltipContentSize.width / 2)
-                .coerceIn(0f, contentSize.width - tooltipContentSize.width)
+        offset = IntOffset(
+            x = (focusPointState.x - tooltipContentSize.width / 2)
+                .coerceIn(0f, this.contentSize.width - tooltipContentSize.width)
                 .toInt(),
-            y = (focusPoint.y - tooltipContentSize.height - spec.tooltipTickSize.toPx())
+            y = (focusPointState.y - tooltipContentSize.height - spec.tooltipTickSize.toPx())
                 .coerceAtLeast(0f)
                 .toInt()
         )
     } else {
-        offset = if (Offset.Unspecified == focusPoint)
-            IntOffset(
-                x = (size.width + spec.tooltipTickSize.toPx())
-                    .coerceAtMost(contentSize.width - tooltipContentSize.width)
-                    .toInt(),
-                y = (leftTop.y - tooltipContentSize.height / 2 + size.height / 2)
-                    .coerceIn(0f, contentSize.height - tooltipContentSize.height)
-                    .toInt()
-            )
-        else IntOffset(
-            x = (focusPoint.x + spec.tooltipTickSize.toPx())
-                .coerceIn(0f, contentSize.width - tooltipContentSize.width)
+        offset = IntOffset(
+            x = (topLeftState.x + contentSizeState.width + spec.tooltipTickSize.toPx())
+                .coerceIn(0f, this.contentSize.width - tooltipContentSize.width)
                 .toInt(),
-            y = (leftTop.y - tooltipContentSize.height / 2 + size.height / 2)
-                .coerceIn(0f, contentSize.height - tooltipContentSize.height)
+            y = (topLeftState.y - tooltipContentSize.height / 2 + contentSizeState.height / 2)
+                .coerceIn(0f, this.contentSize.height - tooltipContentSize.height)
                 .toInt()
         )
         alignment = TooltipAlignment.Start
@@ -250,84 +262,97 @@ class TooltipShape(
     }
 }
 
+open class MarkerDashLineSpec(
+    val color: Color = Color.Gray,
+    val strokeWidth: Dp = 1.dp,
+    val angle: Float = 15f,
+    val step: Dp = 8.dp,
+) : ChartComponentSpec
+
+class DarkMarkerDashLineSpec(
+    color: Color = Color.Gray,
+    strokeWidth: Dp = 1.dp,
+    angle: Float = 15f,
+    step: Dp = 8.dp,
+) : MarkerDashLineSpec(color, strokeWidth, angle, step)
+
 @Composable
 fun SingleChartScope<*>.MarkerDashLineComponent(
-    color: Color = MaterialTheme.colorScheme.primary,
-    strokeWidth: Dp = 2.dp,
+    spec: MarkerDashLineSpec = MarkerDashLineSpec(),
+    drawElement: DrawElement,
     topLeft: Offset,
-    contentSize: Size,
-    focusPoint: Offset
+    contentSize: Size
 ) {
     val pathEffect = remember {
         PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
     }
+    val contentSizeState by animateSizeAsState(contentSize)
+    val topLeftState by animateOffsetAsState(topLeft)
     ChartCanvas(
-        Modifier.fillMaxSize()
+        Modifier
+            .size(contentSizeState.width.toDp(), contentSizeState.height.toDp())
+            .offset { topLeftState.round() }
+            .graphicsLayer {
+                clip = true
+                shape = if (drawElement is DrawElement.Circle)
+                    CircleShape
+                else DrawElementShape(drawElement)
+            }
+            .clipToBounds()
     ) {
-        if (isHorizontal) {
-            clickableRect(topLeft = topLeft, size = contentSize)
-            drawLine(
-                color = Color.Transparent whenPressedAnimateTo color,
-                start = Offset(
-                    x = topLeft.x + contentSize.width / 2,
-                    y = topLeft.y
-                ),
-                end = Offset(
-                    x = topLeft.x + contentSize.width / 2,
-                    y = topLeft.y + contentSize.height
-                ),
-                strokeWidth = strokeWidth.toPx(),
-                pathEffect = pathEffect
-            )
-            drawLine(
-                color = Color.Transparent whenPressedAnimateTo color,
-                start = Offset(
-                    x = topLeft.x,
-                    y = if (focusPoint == Offset.Unspecified)
-                        topLeft.y + contentSize.height / 2
-                    else focusPoint.y
-                ),
-                end = Offset(
-                    x = topLeft.x + contentSize.width,
-                    y = if (focusPoint == Offset.Unspecified)
-                        topLeft.y + contentSize.height / 2
-                    else focusPoint.y
-                ),
-                strokeWidth = strokeWidth.toPx(),
-                pathEffect = pathEffect
-            )
-        } else {
-            drawLine(
-                color = color,
-                start = Offset(
-                    x = topLeft.x,
-                    y = topLeft.y + contentSize.height / 2
-                ),
-                end = Offset(
-                    x = topLeft.x + contentSize.width,
-                    y = topLeft.y + contentSize.height / 2
-                ),
-                strokeWidth = strokeWidth.toPx(),
-                pathEffect = pathEffect
-            )
-            drawLine(
-                color = color,
-                start = Offset(
-                    x = if (focusPoint == Offset.Unspecified)
-                        topLeft.x + contentSize.width / 2
-                    else focusPoint.x,
-                    y = topLeft.y
-                ),
-                end = Offset(
-                    x = if (focusPoint == Offset.Unspecified)
-                        topLeft.x + contentSize.width / 2
-                    else focusPoint.x,
-                    y = topLeft.y + contentSize.height
-                ),
-                strokeWidth = strokeWidth.toPx(),
-                pathEffect = pathEffect
-            )
+        val stepPx = spec.step.toPx()
+        val strokeWidthPx = spec.strokeWidth.toPx()
+        val hypotenuse = sqrt(size.height * size.height + size.width * size.width)
+        val stepsCount = (hypotenuse / stepPx).roundToInt()
+        clickableRect(topLeftState, contentSizeState)
+        val lineColor = Color.Transparent whenPressedAnimateTo spec.color
+        rotate(spec.angle, pivot = Offset.Zero) {
+            for (i in 0..stepsCount) {
+                drawLine(
+                    color = lineColor,
+                    start = Offset(x = i * stepPx + strokeWidthPx, y = -size.width),
+                    end = Offset(x = i * stepPx, y = hypotenuse),
+                    strokeWidth = strokeWidthPx,
+                    pathEffect = pathEffect
+                )
+            }
         }
+    }
+}
+
+internal class DrawElementShape(
+    private val drawElement: DrawElement
+) : Shape {
+    override fun createOutline(
+        size: Size,
+        layoutDirection: LayoutDirection,
+        density: Density
+    ): Outline {
+        val path = Path().apply {
+            when (drawElement) {
+                is DrawElement.Oval -> {
+                    addOval(Rect(0f, 0f, size.width, size.height))
+                }
+
+                is DrawElement.Arc -> {
+                    addArc(
+                        oval = Rect(
+                            left = drawElement.topLeft.x,
+                            top = drawElement.topLeft.y,
+                            right = drawElement.topLeft.x + drawElement.size.width,
+                            bottom = drawElement.topLeft.y + drawElement.size.height,
+                        ),
+                        startAngleDegrees = drawElement.startAngle,
+                        sweepAngleDegrees = drawElement.sweepAngle
+                    )
+                }
+
+                else -> {
+                    addRect(Rect(0f, 0f, size.width, size.height))
+                }
+            }
+        }
+        return Outline.Generic(path)
     }
 }
 

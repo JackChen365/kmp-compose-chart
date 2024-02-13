@@ -12,6 +12,7 @@ import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.graphics.Color
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import me.jack.compose.chart.animation.ChartAnimatableState
 import me.jack.compose.chart.animation.ChartColorAnimatableState
@@ -61,10 +62,11 @@ inline fun <T> ChartDataset<T>.rememberMaxValue(
     crossinline maxValueEvaluator: (T) -> Float
 ): Float {
     var maxValue by remember {
-        mutableFloatStateOf(0f)
+        // avoid divide zero issue
+        mutableFloatStateOf(1f)
     }
     LaunchedEffect(groupSize, size) {
-        launch {
+        launch(Dispatchers.IO) {
             maxValue = maxOf(block = maxValueEvaluator)
         }
     }
@@ -76,10 +78,11 @@ inline fun <T> ChartDataset<T>.rememberMinValue(
     crossinline minValueEvaluator: (T) -> Float
 ): Float {
     var minValue by remember {
-        mutableFloatStateOf(0f)
+        // avoid divide zero issue
+        mutableFloatStateOf(1f)
     }
     LaunchedEffect(groupSize, size) {
-        launch {
+        launch(Dispatchers.IO) {
             minValue = minOf(block = minValueEvaluator)
         }
     }
@@ -91,10 +94,11 @@ inline fun <T> ChartDataset<T>.rememberSumValue(
     crossinline sumValueEvaluator: (T) -> Float
 ): Float {
     var sumValue by remember {
-        mutableFloatStateOf(0f)
+        // avoid divide zero issue
+        mutableFloatStateOf(1f)
     }
     LaunchedEffect(groupSize, size) {
-        launch {
+        launch(Dispatchers.IO) {
             sumValue = sumOf(block = sumValueEvaluator)
         }
     }

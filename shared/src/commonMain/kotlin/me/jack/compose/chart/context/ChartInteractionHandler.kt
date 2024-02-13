@@ -30,7 +30,7 @@ fun ChartInteractionHandler.tryEmit(interaction: Interaction) {
 }
 
 fun ChartContext.chartInteraction(
-    interactionSource: MutableInteractionSource
+    interactionSource: MutableInteractionSource = MutableInteractionSource()
 ): ChartContext {
     return this + SimpleChartInteractionHandler(interactionSource).also {
         it.addChartInteractionState(ChartTapInteractionState())

@@ -18,6 +18,9 @@ import me.jack.compose.chart.component.TapGestures
 import me.jack.compose.chart.context.ChartContext
 import me.jack.compose.chart.context.chartScrollState
 import me.jack.compose.chart.context.isHorizontal
+import me.jack.compose.chart.draw.DrawElement
+import me.jack.compose.chart.draw.interaction.elementInteraction
+import me.jack.compose.chart.interaction.ChartElementInteraction
 import me.jack.compose.chart.measure.ChartContentMeasurePolicy
 import me.jack.compose.chart.model.BarData
 import me.jack.compose.chart.model.BubbleData
@@ -65,7 +68,7 @@ interface MutableScrollableScope {
 class SingleChartScopeInstance<T>(
     override val chartDataset: ChartDataset<T>,
     override val chartContext: ChartContext = ChartContext,
-    override val tapGestures: TapGestures<T> = TapGestures(),
+    override val tapGestures: TapGestures<T>,
     override val contentMeasurePolicy: ChartContentMeasurePolicy,
 ) : SingleChartScope<T>, MutableScrollableScope {
     override var contentSize: Size = Size.Zero
@@ -175,6 +178,23 @@ interface ChartScope {
     fun Modifier.anchor(
         anchor: ChartAnchor, alignContent: Boolean = true
     ): Modifier
+}
+
+inline fun <reified T, reified E : DrawElement> SingleChartScope<T>.withChartElementInteraction(
+    block: (drawElement: E, current: T, currentGroupItems: List<T>) -> Unit
+) {
+    val elementInteraction = chartContext.elementInteraction
+    if (elementInteraction is ChartElementInteraction.Element<*> &&
+        elementInteraction.currentItem is T &&
+        elementInteraction.drawElement is E
+    ) {
+        @Suppress("UNCHECKED_CAST")
+        block(
+            elementInteraction.drawElement,
+            elementInteraction.currentItem,
+            elementInteraction.currentGroupItems as List<T>
+        )
+    }
 }
 
 interface SingleChartScope<T> : ChartScope {

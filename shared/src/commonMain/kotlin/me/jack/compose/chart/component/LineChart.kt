@@ -23,8 +23,6 @@ import me.jack.compose.chart.context.zoom
 import me.jack.compose.chart.draw.ChartCanvas
 import me.jack.compose.chart.draw.DrawElement
 import me.jack.compose.chart.draw.LazyChartCanvas
-import me.jack.compose.chart.draw.interaction.elementInteraction
-import me.jack.compose.chart.interaction.asElementInteraction
 import me.jack.compose.chart.measure.ChartContentMeasurePolicy
 import me.jack.compose.chart.measure.rememberFixedContentMeasurePolicy
 import me.jack.compose.chart.model.LineData
@@ -36,6 +34,7 @@ import me.jack.compose.chart.scope.fastForEachWithNext
 import me.jack.compose.chart.scope.isFirstIndex
 import me.jack.compose.chart.scope.isHorizontal
 import me.jack.compose.chart.scope.rememberMaxValue
+import me.jack.compose.chart.scope.withChartElementInteraction
 import me.jack.compose.chart.theme.LocalChartTheme
 import kotlin.math.max
 
@@ -153,21 +152,18 @@ fun StockLineChart(
 }
 
 @Composable
-fun SingleChartScope<LineData>.LineMarkerComponent() {
-    val elementInteraction = chartContext.elementInteraction.asElementInteraction<LineData>()
-    val currentGroupItems = elementInteraction?.currentGroupItems
-    val drawElement = elementInteraction?.drawElement
-    if (null != currentGroupItems && null != drawElement && drawElement is DrawElement.Rect) {
+fun LineChartScope.LineMarkerComponent() {
+    withChartElementInteraction<LineData, DrawElement.Rect> { drawElement, _, currentGroupItems ->
         MarkerDashLineComponent(
+            drawElement = drawElement,
             topLeft = drawElement.topLeft,
-            contentSize = drawElement.size,
-            focusPoint = drawElement.focusPoint
+            contentSize = drawElement.size
         )
         MarkerComponent(
-            leftTop = drawElement.topLeft,
-            size = drawElement.size,
+            topLeft = drawElement.topLeft,
+            contentSize = drawElement.size,
             focusPoint = drawElement.focusPoint,
-            displayInfo = "(" + currentGroupItems.joinToString { it.value.toString() } + ")"
+            displayInfo = "(" + currentGroupItems.joinToString { String.format("%.2f", it.value) } + ")"
         )
     }
 }
@@ -182,10 +178,6 @@ fun SingleChartScope<LineData>.ChartLineComponent(
         modifier = Modifier.fillMaxSize()
     ) { current, next ->
         val lineItemSize = size.crossAxis / maxValue
-        clickableRect(
-            topLeft = currentLeftTopOffset,
-            size = childSize
-        )
         drawLine(
             color = current.color,
             start = if (isHorizontal) Offset(
@@ -205,9 +197,13 @@ fun SingleChartScope<LineData>.ChartLineComponent(
             strokeWidth = lineSpec.strokeWidth.toPx()
         )
         if (isFirstIndex()) {
-            clickableRect(
+            clickableRectWithInteraction(
                 topLeft = currentLeftTopOffset,
-                size = childSize
+                size = childSize,
+                focusPoint = Offset(
+                    x = childCenterOffset.x,
+                    y = size.height - current.value * lineItemSize,
+                )
             )
             drawCircle(
                 color = current.color whenPressedAnimateTo current.color.copy(alpha = lineSpec.pressAlpha),
@@ -218,12 +214,16 @@ fun SingleChartScope<LineData>.ChartLineComponent(
                 )
             )
         }
-        clickableRect(
+        clickableRectWithInteraction(
             topLeft = nextLeftTopOffset,
-            size = childSize
+            size = childSize,
+            focusPoint = Offset(
+                x = nextChildCenterOffset.x,
+                y = size.height - next.value * lineItemSize,
+            )
         )
         drawCircle(
-            color = current.color whenPressedAnimateTo current.color.copy(alpha = lineSpec.pressAlpha),
+            color = current.color whenPressedAnimateTo next.color.copy(alpha = lineSpec.pressAlpha),
             radius = circleRadiusPx whenPressedAnimateTo circleRadiusPx * 1.4f,
             center = Offset(
                 x = nextChildCenterOffset.x,
@@ -337,9 +337,10 @@ private fun SingleChartScope<LineData>.HorizontalCurveLine(
                 y3 = nextOffset.y,
             )
             // add clickable rect
-            clickableRect(
+            clickableRectWithInteraction(
                 topLeft = currentLeftTopOffset,
-                size = Size(width = childSize.width, size.height)
+                size = Size(width = childSize.width, size.height),
+                focusPoint = currentOffset
             )
             drawCircle(
                 color = current.color whenPressedAnimateTo current.color.copy(alpha = spec.pressAlpha),
@@ -347,14 +348,15 @@ private fun SingleChartScope<LineData>.HorizontalCurveLine(
                 center = currentOffset
             )
             if (index + 1 == range.last) {
-                clickableRect(
+                clickableRectWithInteraction(
                     topLeft = nextLeftTopOffset,
-                    size = Size(width = childSize.width, size.height)
+                    size = Size(width = childSize.width, size.height),
+                    focusPoint = nextChildCenterOffset.copy(y = nextOffset.y)
                 )
                 drawCircle(
                     color = next.color whenPressedAnimateTo next.color.copy(alpha = spec.pressAlpha),
                     radius = 0f whenPressedAnimateTo spec.circleRadius.toPx(),
-                    center = nextChildCenterOffset.copy(y = next.value * lineItemSize)
+                    center = nextChildCenterOffset.copy(y = nextOffset.y)
                 )
                 val currentItem: LineData = currentItem()
                 path.lineTo(nextOffset.x + childSize.mainAxis / 2 + strokeWidthPx, nextOffset.y)

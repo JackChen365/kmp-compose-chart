@@ -1,6 +1,5 @@
 package me.jack.compose.chart.component
 
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -16,8 +15,6 @@ import me.jack.compose.chart.context.scrollable
 import me.jack.compose.chart.context.zoom
 import me.jack.compose.chart.draw.DrawElement
 import me.jack.compose.chart.draw.LazyChartCanvas
-import me.jack.compose.chart.draw.interaction.elementInteraction
-import me.jack.compose.chart.interaction.asElementInteraction
 import me.jack.compose.chart.measure.ChartContentMeasurePolicy
 import me.jack.compose.chart.model.BubbleData
 import me.jack.compose.chart.scope.BubbleChartScope
@@ -25,6 +22,7 @@ import me.jack.compose.chart.scope.ChartDataset
 import me.jack.compose.chart.scope.SingleChartScope
 import me.jack.compose.chart.scope.isHorizontal
 import me.jack.compose.chart.scope.rememberMaxValue
+import me.jack.compose.chart.scope.withChartElementInteraction
 import me.jack.compose.chart.theme.LocalChartTheme
 
 class BubbleSpec(
@@ -65,16 +63,19 @@ fun BubbleChart(
     contentMeasurePolicy: ChartContentMeasurePolicy,
     tapGestures: TapGestures<BubbleData> = rememberCombinedTapGestures(),
     scrollableState: ChartScrollableState? = null,
-    content: @Composable SingleChartScope<BubbleData>.() -> Unit = BubbleChartContent
+    content: @Composable BubbleChartScope.() -> Unit = BubbleChartContent
 ) {
-    SingleChartLayout(
-        modifier = modifier,
-        chartContext = ChartContext
-            .chartInteraction(remember { MutableInteractionSource() })
+    val chartContext = remember {
+        ChartContext
+            .chartInteraction()
             .scrollable(
                 orientation = contentMeasurePolicy.orientation
             )
-            .zoom(),
+            .zoom()
+    }
+    SingleChartLayout(
+        modifier = modifier,
+        chartContext = chartContext,
         tapGestures = tapGestures,
         contentMeasurePolicy = contentMeasurePolicy,
         scrollableState = scrollableState,
@@ -88,11 +89,19 @@ fun BubbleChart(
 
 @Composable
 fun SingleChartScope<BubbleData>.BubbleMarkerComponent() {
-    val pressInteraction = chartContext.elementInteraction.asElementInteraction<BubbleData>() ?: return
-    val currentItem = pressInteraction.currentItem
-    val drawElement = pressInteraction.drawElement
-    if (drawElement is DrawElement.Circle) {
+    withChartElementInteraction<BubbleData, DrawElement.Circle> { drawElement, currentItem, _ ->
         MarkerDashLineComponent(
+            drawElement = drawElement,
+            topLeft = Offset(
+                x = drawElement.center.x - drawElement.radius,
+                y = drawElement.center.y - drawElement.radius
+            ),
+            contentSize = Size(
+                width = 2 * drawElement.radius,
+                height = 2 * drawElement.radius
+            )
+        )
+        MarkerComponent(
             topLeft = Offset(
                 x = drawElement.center.x - drawElement.radius,
                 y = drawElement.center.y - drawElement.radius
@@ -101,18 +110,7 @@ fun SingleChartScope<BubbleData>.BubbleMarkerComponent() {
                 width = 2 * drawElement.radius,
                 height = 2 * drawElement.radius
             ),
-            focusPoint = drawElement.center
-        )
-        MarkerComponent(
-            leftTop = Offset(
-                x = drawElement.center.x - drawElement.radius,
-                y = drawElement.center.y - drawElement.radius
-            ),
-            size = Size(
-                width = 2 * drawElement.radius,
-                height = 2 * drawElement.radius
-            ),
-            focusPoint = drawElement.center,
+            focusPoint = drawElement.focusPoint,
             displayInfo = "(" + currentItem.value.toString() + ")"
         )
     }
@@ -129,10 +127,12 @@ fun BubbleChartScope.BubbleComponent(
         modifier = Modifier.fillMaxSize()
     ) { current ->
         val bubbleItemSize = size.height / maxValue
-        clickable {
+        clickableWithInteraction {
             drawCircle(
-                color = current.color whenPressedAnimateTo current.color.copy(alpha = 0.8f),
-                radius = (current.volume * volumeSize) whenPressedAnimateTo (current.volume * volumeSize * 1.2f),
+                //                color = current.color whenPressed current.color.copy(alpha = 0.8f),
+                color = current.color,
+                //                radius = (current.volume * volumeSize) whenPressedAnimateTo (current.volume * volumeSize * 1.2f),
+                radius = (current.volume * volumeSize),
                 center = if (isHorizontal) Offset(
                     x = childCenterOffset.x,
                     y = size.crossAxis - current.value * bubbleItemSize

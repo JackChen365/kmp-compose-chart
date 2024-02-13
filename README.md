@@ -8,7 +8,7 @@ A simple but powerful KMP compose chart library.
 * Support draw element gesture.
   - Tap, Double tap, long press.
 * Chart scroll control.
-* Supprt draw element interaction.
+* Support draw element interaction.
   - Tooltips.
   - Press/Hover.
   - Draw element animation.

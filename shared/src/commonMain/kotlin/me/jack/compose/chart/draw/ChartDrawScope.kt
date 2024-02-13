@@ -14,15 +14,9 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.center
-import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.DrawStyle
-import androidx.compose.ui.graphics.drawscope.Stroke
 import kotlinx.coroutines.CoroutineScope
-import me.jack.compose.chart.animation.ChartAnimatableState
 import me.jack.compose.chart.animation.ChartColorAnimatableState
 import me.jack.compose.chart.animation.ChartFloatAnimatableState
 import me.jack.compose.chart.animation.ChartIntAnimatableState
@@ -40,7 +34,8 @@ import me.jack.compose.chart.context.chartScrollState
 import me.jack.compose.chart.context.pressLocation
 import me.jack.compose.chart.context.pressState
 import me.jack.compose.chart.context.tryEmit
-import me.jack.compose.chart.draw.DrawElement.Companion.getCachedDrawElement
+import me.jack.compose.chart.draw.cache.DrawingKeyframeCache
+import me.jack.compose.chart.draw.cache.getCachedValueOrPut
 import me.jack.compose.chart.draw.interaction.doubleTapLocation
 import me.jack.compose.chart.draw.interaction.doubleTapState
 import me.jack.compose.chart.draw.interaction.elementInteraction
@@ -52,7 +47,6 @@ import me.jack.compose.chart.draw.interaction.tapLocation
 import me.jack.compose.chart.draw.interaction.tapState
 import me.jack.compose.chart.interaction.ChartElementInteraction
 import me.jack.compose.chart.interaction.ChartTapInteraction
-import me.jack.compose.chart.interaction.asElementInteraction
 import me.jack.compose.chart.scope.ChartDataset
 import me.jack.compose.chart.scope.ChartDatasetAccessScope
 import me.jack.compose.chart.scope.ChartDatasetAccessScopeInstance
@@ -150,23 +144,98 @@ fun <T> SingleChartScope<T>.LazyChartCanvas(
     )
 }
 
+internal fun <T : DrawElement> DrawingKeyframeCache.getCachedDrawElement(
+    key: Class<T>,
+    onHitCache: (T) -> Unit = { },
+    defaultValue: (key: Class<T>) -> T = ::defaultDrawingElementFactory
+): T {
+    return getCachedValueOrPut(
+        key = key,
+        onHitCache = onHitCache,
+        defaultValue = defaultValue
+    )
+}
+
+/**
+ * This reified type can not handle cases like:
+ *
+ * ```
+ * val currentDrawElement: DrawElement = DrawElement.Rect()
+ *
+ * private inline fun <reified T : DrawElement> T.copyDrawElement(): T {
+ *     val newDrawElement: T = drawingElementCache.getCachedDrawElement()
+ *     return newDrawElement.copy(this) as T
+ * }
+ *
+ * currentDrawElement.copyElement() error!! It trying to use `DrawElement` as Key
+ * ```
+ * It always return DrawElement, so if you got case like this, you are supposed to use [getCachedDrawElement] with specific key.
+ */
+internal inline fun <reified T : DrawElement> DrawingKeyframeCache.getCachedDrawElement(
+    noinline onHitCache: (T) -> Unit = { },
+    noinline defaultValue: (key: Class<T>) -> T = ::defaultDrawingElementFactory
+): T {
+    return getCachedValueOrPut(
+        key = T::class.java,
+        onHitCache = onHitCache,
+        defaultValue = defaultValue
+    )
+}
+
+internal fun <T : DrawElement> defaultDrawingElementFactory(key: Class<T>): T {
+    @Suppress("UNCHECKED_CAST")
+    return when (key) {
+        DrawElement.Rect::class.java -> DrawElement.Rect()
+        DrawElement.Circle::class.java -> DrawElement.Circle()
+        DrawElement.Oval::class.java -> DrawElement.Oval()
+        DrawElement.Arc::class.java -> DrawElement.Arc()
+        else -> error("Does not support this class type:$key")
+    } as T
+}
+
 class ChartDrawScope<T>(
     val singleChartScope: SingleChartScope<T>,
     private val drawScope: DrawScope,
     private val scope: CoroutineScope,
     private val tapGestures: TapGestures<T>
 ) : DrawScope by drawScope, ChartDatasetAccessScope by ChartDatasetAccessScopeInstance {
+    // Factory for AnimatableState
+    private val defaultIntAnimatableStateFactory: (Class<*>) -> ChartIntAnimatableState =
+        { intAnimatableState(scope, 0) }
+    private val defaultFloatAnimatableStateFactory: (Class<*>) -> ChartFloatAnimatableState =
+        { floatAnimatableState(scope, 0f) }
+    private val defaultColorAnimatableStateFactory: (Class<*>) -> ChartColorAnimatableState =
+        { colorAnimatableState(scope, Color.Transparent) }
+    private val defaultSizeAnimatableStateFactory: (Class<*>) -> ChartSizeAnimatableState =
+        { sizeAnimatableState(scope, Size.Zero) }
+    private val defaultOffsetAnimatableStateFactory: (Class<*>) -> ChartOffsetAnimatableState =
+        { offsetAnimatableState(scope, Offset.Zero) }
     val chartContext: ChartContext = singleChartScope.chartContext
     val chartDataset: ChartDataset<T> = singleChartScope.chartDataset
-    val currentDrawElement: DrawElement
-        get() = internalCurrentDrawElement
-    private var internalCurrentDrawElement: DrawElement = DrawElement.None
-    private val traceableDrawScope = TraceableDrawScope(this)
-    private val animationStateCaching = mutableMapOf<Class<*>, MutableList<ChartAnimatableState<*, *>>>()
-    private var animationChildIds = mutableMapOf<Class<*>, Int>()
+
+    /**
+     * Animatable state drawing cache pool.
+     */
+    private val drawingStateKeyframeCache = DrawingKeyframeCache()
+
+    /**
+     * Current drawing element cache pool.
+     */
+    private val drawingElementCache = DrawingKeyframeCache()
+
+    /**
+     * Interaction drawing element cache pool, we can not mix this pool with screen drawing element.
+     * The [drawingElementCache] will be reused per frame but only for interaction, we are supposed to keep it until user change his behavior
+     */
+    private val interactionDrawingElementCache = DrawingKeyframeCache()
+    private var currentDrawElement: DrawElement = DrawElement.None
+    private var activatedDrawElement: DrawElement = DrawElement.None
+    private val updateDrawingElementDrawScope = UpdateDrawingElementDrawScope(this, drawingElementCache)
 
     fun reset() {
-        animationChildIds.clear()
+        activatedDrawElement = DrawElement.None
+        drawingStateKeyframeCache.resetChildIds()
+        drawingElementCache.resetChildIds()
     }
 
     val currentLeftTopOffset: Offset
@@ -218,41 +287,78 @@ class ChartDrawScope<T>(
         topLeft: Offset,
         size: Size
     ) {
-        val drawElement: DrawElement.Rect = getCachedDrawElement()
+        val drawElement: DrawElement.Rect = obtainDrawElement()
         drawElement.topLeft = topLeft
         drawElement.size = size
-        drawElement.focusPoint = Offset.Unspecified
-        internalCurrentDrawElement = drawElement
-        detectClickableInteraction(internalCurrentDrawElement, currentItem())
+        currentDrawElement = drawElement
+        updateActiveDrawElementIfNeeded(currentDrawElement)
+        detectClickableInteraction(currentDrawElement, currentItem())
+    }
+
+    fun clickableRectWithInteraction(
+        topLeft: Offset,
+        size: Size,
+        focusPoint: Offset = Offset.Unspecified
+    ) {
+        val drawElement: DrawElement.Rect = obtainDrawElement()
+        drawElement.topLeft = topLeft
+        drawElement.size = size
+        drawElement.focusPoint = focusPoint
+        currentDrawElement = drawElement
+        updateActiveDrawElementIfNeeded(currentDrawElement)
+        detectClickableInteraction(currentDrawElement, currentItem())
+        detectChartInteraction()
     }
 
     fun clickable(
-        block: TraceableDrawScope<T>.() -> Unit
+        block: UpdateDrawingElementDrawScope<T>.() -> Unit
     ) {
-        traceableDrawScope.trackChartData(currentItem(), index)
+        updateDrawingElementDrawScope.trackChartData(currentItem(), index)
         // invoke twice, first we update the draw element, and then the second time we draw the element.
-        block.invoke(traceableDrawScope)
-        internalCurrentDrawElement = traceableDrawScope.currentDrawElement
-        detectClickableInteraction(internalCurrentDrawElement, currentItem())
-        block.invoke(traceableDrawScope)
+        block.invoke(updateDrawingElementDrawScope)
+        currentDrawElement = updateDrawingElementDrawScope.currentDrawElement
+        updateActiveDrawElementIfNeeded(currentDrawElement)
+        detectClickableInteraction(currentDrawElement, currentItem())
+        block.invoke(updateDrawingElementDrawScope)
     }
 
     fun <T> ChartDrawScope<T>.clickableWithInteraction(
-        block: TraceableDrawScope<T>.() -> Unit
+        block: UpdateDrawingElementDrawScope<T>.() -> Unit
     ) {
         clickable(block)
         detectChartInteraction()
     }
 
-    private fun detectChartInteraction(focusPoint: Offset = Offset.Unspecified) {
+    private fun updateActiveDrawElementIfNeeded(currentDrawElement: DrawElement) {
+        if (activatedDrawElement.isNone() && (isHoveredState() || isPressedState())) {
+            activatedDrawElement = currentDrawElement
+        }
+    }
+
+    private inline fun <reified T : DrawElement> obtainDrawElement(): T {
+        return drawingElementCache.getCachedDrawElement()
+    }
+
+    private fun <T : DrawElement> T.copyInteractionDrawElement(): T {
+        val newDrawElement: T = interactionDrawingElementCache.getCachedDrawElement(this::class.java)
+        @Suppress("UNCHECKED_CAST")
+        return newDrawElement.copy(this) as T
+    }
+
+    private fun detectChartInteraction() {
         if (!isHoveredOrPressed()) return
-        val interactionState = chartContext.elementInteraction.asElementInteraction<Any>()
-        if (null == interactionState || currentDrawElement != interactionState.drawElement) {
-            val chartGroupData = chartDataset.getChartGroupData(index)
+        val elementInteraction = chartContext.elementInteraction
+        val chartGroupData = chartDataset.getChartGroupData(index)
+        var oldElement: DrawElement = DrawElement.None
+        if (elementInteraction is ChartElementInteraction.Element<*>) {
+            oldElement = elementInteraction.drawElement
+        }
+        if (oldElement != currentDrawElement) {
+            val newDrawElement = currentDrawElement.copyInteractionDrawElement()
+            println("newDrawElement:$newDrawElement")
             chartContext.chartInteractionHandler.tryEmit(
                 ChartElementInteraction.Element(
-                    location = focusPoint,
-                    drawElement = currentDrawElement.clone(),
+                    drawElement = newDrawElement,
                     currentItem = currentItem(),
                     currentGroupItems = chartGroupData
                 )
@@ -267,6 +373,30 @@ class ChartDrawScope<T>(
     private fun Color.valueIf(
         targetValue: Color, condition: () -> Boolean
     ): Color {
+        return if (condition()) targetValue else this
+    }
+
+    private fun Int.valueIf(
+        targetValue: Int, condition: () -> Boolean
+    ): Int {
+        return if (condition()) targetValue else this
+    }
+
+    private fun Float.valueIf(
+        targetValue: Float, condition: () -> Boolean
+    ): Float {
+        return if (condition()) targetValue else this
+    }
+
+    private fun Offset.valueIf(
+        targetValue: Offset, condition: () -> Boolean
+    ): Offset {
+        return if (condition()) targetValue else this
+    }
+
+    private fun Size.valueIf(
+        targetValue: Size, condition: () -> Boolean
+    ): Size {
         return if (condition()) targetValue else this
     }
 
@@ -290,16 +420,25 @@ class ChartDrawScope<T>(
         return animateToIf(targetValue = targetValue, condition = ::isHoveredOrPressed)
     }
 
-    fun isPressed(): Boolean {
-        return !isScrollInProgress() && chartContext.pressState.value && chartContext.pressLocation in internalCurrentDrawElement
-    }
-
     private fun isScrollInProgress(): Boolean {
         return chartContext.chartScrollState?.isScrollInProgress ?: false
     }
 
+    fun isPressed(): Boolean {
+        return activatedDrawElement == currentDrawElement && !isScrollInProgress() && isPressedState()
+    }
+
+    private fun isPressedState(): Boolean {
+        return chartContext.pressState.value &&
+                chartContext.pressLocation in currentDrawElement
+    }
+
     fun isHovered(): Boolean {
-        return !isScrollInProgress() && chartContext.hoverState.value && chartContext.hoverLocation in internalCurrentDrawElement
+        return activatedDrawElement == currentDrawElement && !isScrollInProgress() && isHoveredState()
+    }
+
+    private fun isHoveredState(): Boolean {
+        return chartContext.hoverState.value && chartContext.hoverLocation in currentDrawElement
     }
 
     fun isHoveredOrPressed(): Boolean {
@@ -368,352 +507,39 @@ class ChartDrawScope<T>(
         }
     }
 
-    private inline fun <reified T : ChartAnimatableState<*, *>> getCachedAnimatableState(): T? {
-        val key = T::class.java
-        val animatableStates = animationStateCaching.getOrPut(key) { mutableListOf() }
-        val animationChildId = animationChildIds.getOrDefault(key = key, 0)
-        animationChildIds[key] = animationChildId + 1
-        return animatableStates.getOrNull(animationChildId + 1) as? T
-    }
-
-    private inline fun <reified T : ChartAnimatableState<*, *>> addCachedAnimatableState(animatableState: T) {
-        val key = animatableState::class.java
-        val animatableStates = animationStateCaching.getOrPut(key) { mutableListOf() }
-        animatableStates.add(animatableState)
-    }
-
     fun intAnimationState(initialValue: Int = 0): ChartIntAnimatableState {
-        return getCachedAnimatableState() ?: intAnimatableState(initialValue = initialValue, scope = scope).also {
-            addCachedAnimatableState(it)
-        }
+        return drawingStateKeyframeCache.getCachedValueOrPut(
+            onHitCache = { it.reset(initialValue) },
+            defaultValue = defaultIntAnimatableStateFactory
+        )
     }
 
-    fun floatAnimationState(
-        initialValue: Float = 0f
-    ): ChartFloatAnimatableState {
-        return getCachedAnimatableState<ChartFloatAnimatableState>()?.also { state ->
-            state.reset(initialValue)
-        } ?: floatAnimatableState(
-            scope = scope, initialValue = initialValue
-        ).also {
-            addCachedAnimatableState(it)
-        }
+    fun floatAnimationState(initialValue: Float = 0f): ChartFloatAnimatableState {
+        return drawingStateKeyframeCache.getCachedValueOrPut(
+            onHitCache = { it.reset(initialValue) },
+            defaultValue = defaultFloatAnimatableStateFactory
+        )
     }
 
     fun colorAnimationState(initialValue: Color = Color.Transparent): ChartColorAnimatableState {
-        return getCachedAnimatableState<ChartColorAnimatableState>()?.also { state ->
-            state.reset(initialValue)
-        } ?: colorAnimatableState(initialValue = initialValue, scope = scope).also {
-            addCachedAnimatableState(it)
-        }
+        return drawingStateKeyframeCache.getCachedValueOrPut(
+            onHitCache = { it.reset(initialValue) },
+            defaultValue = defaultColorAnimatableStateFactory
+        )
     }
 
     fun sizeAnimationState(initialValue: Size = Size.Zero): ChartSizeAnimatableState {
-        return getCachedAnimatableState<ChartSizeAnimatableState>()?.also { state ->
-            state.reset(initialValue)
-        } ?: sizeAnimatableState(initialValue = initialValue, scope = scope).also {
-            addCachedAnimatableState(it)
-        }
+        return drawingStateKeyframeCache.getCachedValueOrPut(
+            onHitCache = { it.reset(initialValue) },
+            defaultValue = defaultSizeAnimatableStateFactory
+        )
     }
 
     fun offsetAnimationState(initialValue: Offset = Offset.Zero): ChartOffsetAnimatableState {
-        return getCachedAnimatableState<ChartOffsetAnimatableState>()?.also { state ->
-            state.reset(initialValue)
-        } ?: offsetAnimatableState(initialValue = initialValue, scope = scope).also {
-            addCachedAnimatableState(it)
-        }
-    }
-}
-
-class TraceableDrawScope<T>(
-    private val drawScope: ChartDrawScope<T>
-) : DrawScope by drawScope {
-    var currentDrawElement: DrawElement = DrawElement.None
-    private var isCurrentDrawElementUpdated = false
-    private var currentItem: T? = null
-    private var currentIndex: Int = 0
-
-    val currentLeftTopOffset: Offset
-        get() = with(drawScope) { currentLeftTopOffset }
-
-    val nextLeftTopOffset: Offset
-        get() = with(drawScope) { nextLeftTopOffset }
-
-    val childCenterOffset: Offset
-        get() = with(drawScope) { childCenterOffset }
-
-    val childSize: Size
-        get() = with(drawScope) { childSize }
-
-    infix fun Color.whenPressed(targetValue: Color): Color {
-        return with(drawScope) { whenPressed(targetValue) }
-    }
-
-    infix fun Int.whenPressedAnimateTo(targetValue: Int): Int {
-        return with(drawScope) { whenPressedAnimateTo(targetValue) }
-    }
-
-    infix fun Float.whenPressedAnimateTo(targetValue: Float): Float {
-        return with(drawScope) { whenPressedAnimateTo(targetValue) }
-    }
-
-    infix fun Color.whenPressedAnimateTo(targetValue: Color): Color {
-        return with(drawScope) { whenPressedAnimateTo(targetValue) }
-    }
-
-    infix fun Offset.whenPressedAnimateTo(targetValue: Offset): Offset {
-        return with(drawScope) { whenPressedAnimateTo(targetValue) }
-    }
-
-    infix fun Size.whenPressedAnimateTo(targetValue: Size): Size {
-        return with(drawScope) { whenPressedAnimateTo(targetValue) }
-    }
-
-    override fun drawRect(
-        brush: Brush,
-        topLeft: Offset,
-        size: Size,
-        alpha: Float,
-        style: DrawStyle,
-        colorFilter: ColorFilter?,
-        blendMode: BlendMode
-    ) {
-        drawElement(
-            onUpdateDrawElement = {
-                val rectDrawElement: DrawElement.Rect = getCachedDrawElement()
-                rectDrawElement.topLeft = topLeft
-                rectDrawElement.size = size
-                rectDrawElement.focusPoint = Offset(
-                    x = topLeft.x + size.width / 2,
-                    y = topLeft.y + size.height / 2
-                )
-                currentDrawElement = rectDrawElement
-            },
-            onDraw = {
-                drawScope.drawRect(brush, topLeft, size, alpha, style, colorFilter, blendMode)
-            }
+        return drawingStateKeyframeCache.getCachedValueOrPut(
+            onHitCache = { it.reset(initialValue) },
+            defaultValue = defaultOffsetAnimatableStateFactory
         )
-    }
-
-    override fun drawRect(
-        color: Color,
-        topLeft: Offset,
-        size: Size,
-        alpha: Float,
-        style: DrawStyle,
-        colorFilter: ColorFilter?,
-        blendMode: BlendMode
-    ) {
-        drawElement(
-            onUpdateDrawElement = {
-                val rectDrawElement: DrawElement.Rect = getCachedDrawElement()
-                rectDrawElement.color = color
-                rectDrawElement.topLeft = topLeft
-                rectDrawElement.size = size
-                rectDrawElement.focusPoint = Offset(
-                    x = topLeft.x + size.width / 2,
-                    y = topLeft.y + size.height / 2
-                )
-                currentDrawElement = rectDrawElement
-            },
-            onDraw = {
-                drawScope.drawRect(color, topLeft, size, alpha, style, colorFilter, blendMode)
-            }
-        )
-    }
-
-    override fun drawCircle(
-        brush: Brush,
-        radius: Float,
-        center: Offset,
-        alpha: Float,
-        style: DrawStyle,
-        colorFilter: ColorFilter?,
-        blendMode: BlendMode
-    ) {
-        drawElement(
-            onUpdateDrawElement = {
-                val circleDrawElement: DrawElement.Circle = getCachedDrawElement()
-                circleDrawElement.radius = radius
-                circleDrawElement.center = center
-                currentDrawElement = circleDrawElement
-            },
-            onDraw = {
-                drawScope.drawCircle(brush, radius, center, alpha, style, colorFilter, blendMode)
-            }
-        )
-    }
-
-    override fun drawCircle(
-        color: Color,
-        radius: Float,
-        center: Offset,
-        alpha: Float,
-        style: DrawStyle,
-        colorFilter: ColorFilter?,
-        blendMode: BlendMode
-    ) {
-        drawElement(
-            onUpdateDrawElement = {
-                val circleDrawElement: DrawElement.Circle = getCachedDrawElement()
-                circleDrawElement.color = color
-                circleDrawElement.radius = radius
-                circleDrawElement.center = center
-                currentDrawElement = circleDrawElement
-            },
-            onDraw = {
-                drawScope.drawCircle(color, radius, center, alpha, style, colorFilter, blendMode)
-            }
-        )
-    }
-
-    override fun drawOval(
-        brush: Brush,
-        topLeft: Offset,
-        size: Size,
-        alpha: Float,
-        style: DrawStyle,
-        colorFilter: ColorFilter?,
-        blendMode: BlendMode
-    ) {
-        drawElement(
-            onUpdateDrawElement = {
-                val ovalDrawElement: DrawElement.Oval = getCachedDrawElement()
-                ovalDrawElement.topLeft = topLeft
-                ovalDrawElement.size = size
-                currentDrawElement = ovalDrawElement
-            },
-            onDraw = {
-                drawScope.drawOval(brush, topLeft, size, alpha, style, colorFilter, blendMode)
-            }
-        )
-    }
-
-    override fun drawOval(
-        color: Color,
-        topLeft: Offset,
-        size: Size,
-        alpha: Float,
-        style: DrawStyle,
-        colorFilter: ColorFilter?,
-        blendMode: BlendMode
-    ) {
-        drawElement(
-            onUpdateDrawElement = {
-                val ovalDrawElement: DrawElement.Oval = getCachedDrawElement()
-                ovalDrawElement.color = color
-                ovalDrawElement.topLeft = topLeft
-                ovalDrawElement.size = size
-                currentDrawElement = ovalDrawElement
-            },
-            onDraw = {
-                drawScope.drawOval(color, topLeft, size, alpha, style, colorFilter, blendMode)
-            }
-        )
-    }
-
-    override fun drawArc(
-        color: Color,
-        startAngle: Float,
-        sweepAngle: Float,
-        useCenter: Boolean,
-        topLeft: Offset,
-        size: Size,
-        alpha: Float,
-        style: DrawStyle,
-        colorFilter: ColorFilter?,
-        blendMode: BlendMode
-    ) {
-        drawElement(
-            onUpdateDrawElement = {
-                val arcDrawElement: DrawElement.Arc = getCachedDrawElement()
-                arcDrawElement.color = color
-                arcDrawElement.startAngle = startAngle
-                arcDrawElement.startAngle = startAngle
-                arcDrawElement.leftTop = topLeft
-                arcDrawElement.size = size
-                arcDrawElement.sweepAngle = sweepAngle
-                if (style is Stroke) {
-                    arcDrawElement.strokeWidth = style.width
-                }
-                currentDrawElement = arcDrawElement
-            },
-            onDraw = {
-                drawScope.drawArc(
-                    color,
-                    startAngle,
-                    sweepAngle,
-                    useCenter,
-                    topLeft,
-                    size,
-                    alpha,
-                    style,
-                    colorFilter,
-                    blendMode
-                )
-            }
-        )
-    }
-
-    override fun drawArc(
-        brush: Brush,
-        startAngle: Float,
-        sweepAngle: Float,
-        useCenter: Boolean,
-        topLeft: Offset,
-        size: Size,
-        alpha: Float,
-        style: DrawStyle,
-        colorFilter: ColorFilter?,
-        blendMode: BlendMode
-    ) {
-        drawElement(
-            onUpdateDrawElement = {
-                val arcDrawElement: DrawElement.Arc = getCachedDrawElement()
-                arcDrawElement.startAngle = startAngle
-                arcDrawElement.leftTop = topLeft
-                arcDrawElement.size = size
-                arcDrawElement.sweepAngle = sweepAngle
-                if (style is Stroke) {
-                    arcDrawElement.strokeWidth = style.width
-                }
-                currentDrawElement = arcDrawElement
-            },
-            onDraw = {
-                drawScope.drawArc(
-                    brush,
-                    startAngle,
-                    sweepAngle,
-                    useCenter,
-                    topLeft,
-                    size,
-                    alpha,
-                    style,
-                    colorFilter,
-                    blendMode
-                )
-            }
-        )
-    }
-
-    private inline fun drawElement(
-        onUpdateDrawElement: () -> Unit,
-        onDraw: () -> Unit
-    ) {
-        try {
-            if (!isCurrentDrawElementUpdated) {
-                onUpdateDrawElement()
-            } else {
-                onDraw()
-            }
-        } finally {
-            isCurrentDrawElementUpdated = !isCurrentDrawElementUpdated
-        }
-    }
-
-    fun trackChartData(currentItem: T, index: Int) {
-        this.currentItem = currentItem
-        this.currentIndex = index
     }
 }
 
@@ -734,48 +560,53 @@ fun DrawElement.isDoubleTap(chartContext: ChartContext): Boolean {
     return chartContext.doubleTapState.value && chartContext.doubleTapLocation in this
 }
 
-sealed class DrawElement : Cloneable {
-    companion object {
-        internal val drawElementCaching = mutableMapOf<Class<*>, DrawElement>()
-        internal inline fun <reified T : DrawElement> getCachedDrawElement(): T {
-            val key = T::class.java
-            return drawElementCaching.getOrPut(key = key) {
-                when (key) {
-                    Rect::class.java -> Rect()
-                    Circle::class.java -> Circle()
-                    Oval::class.java -> Oval()
-                    Arc::class.java -> Arc()
-                    else -> None
-                }
-            } as T
-        }
-    }
+sealed class DrawElement {
+    open var focusPoint: Offset = Offset.Unspecified
 
     open operator fun contains(location: Offset): Boolean = false
 
-    public override fun clone(): DrawElement {
-        return super.clone() as DrawElement
+    open fun copy(other: DrawElement): DrawElement {
+        return this
     }
 
-    data object None : DrawElement()
+    fun isNone(): Boolean {
+        return this == None
+    }
+
+    /**
+     * Since we have defined the method: copy, we should not make it a data object.
+     */
+    @Suppress("ConvertObjectToDataObject")
+    object None : DrawElement()
 
     class Rect : DrawElement() {
         var color: Color = Color.Unspecified
         var topLeft: Offset = Offset.Zero
         var size: Size = Size.Zero
-        var focusPoint: Offset = Offset.Unspecified
+        override var focusPoint: Offset = Offset.Unspecified
+            get() {
+                return if (field == Offset.Unspecified) {
+                    Offset(
+                        x = topLeft.x + size.width / 2,
+                        y = topLeft.y + size.height / 2
+                    )
+                } else {
+                    field
+                }
+            }
 
         override operator fun contains(location: Offset): Boolean {
             return location.intersect(topLeft, size)
         }
 
-        override fun clone(): Rect {
-            val rect = super.clone() as Rect
-            rect.topLeft = topLeft
-            rect.size = size
-            rect.color = color
-            rect.focusPoint = focusPoint
-            return rect
+        override fun copy(other: DrawElement): DrawElement {
+            if (other is Rect) {
+                topLeft = other.topLeft
+                size = other.size
+                color = other.color
+                focusPoint = other.focusPoint
+            }
+            return this
         }
 
         override fun toString(): String {
@@ -790,16 +621,13 @@ sealed class DrawElement : Cloneable {
 
             if (color != other.color) return false
             if (topLeft != other.topLeft) return false
-            if (size != other.size) return false
-
-            return true
+            return size == other.size
         }
 
         override fun hashCode(): Int {
             var result = color.hashCode()
             result = 31 * result + topLeft.hashCode()
             result = 31 * result + size.hashCode()
-            result = 31 * result + focusPoint.hashCode()
             return result
         }
     }
@@ -809,15 +637,27 @@ sealed class DrawElement : Cloneable {
         var radius: Float = 0f
         var center: Offset = Offset.Zero
 
+        override var focusPoint: Offset = Offset.Unspecified
+            get() {
+                return if (field == Offset.Unspecified) {
+                    center
+                } else {
+                    field
+                }
+            }
+
         override operator fun contains(location: Offset): Boolean {
             return location.intersectCircle(center, radius)
         }
 
-        override fun clone(): Circle {
-            val rect = super.clone() as Circle
-            rect.radius = radius
-            rect.center = center
-            return rect
+        override fun copy(other: DrawElement): DrawElement {
+            if (other is Circle) {
+                radius = other.radius
+                center = other.center
+                color = other.color
+                focusPoint = other.focusPoint
+            }
+            return this
         }
 
         override fun toString(): String {
@@ -832,9 +672,7 @@ sealed class DrawElement : Cloneable {
 
             if (color != other.color) return false
             if (radius != other.radius) return false
-            if (center != other.center) return false
-
-            return true
+            return center == other.center
         }
 
         override fun hashCode(): Int {
@@ -850,15 +688,31 @@ sealed class DrawElement : Cloneable {
         var color: Color = Color.Unspecified
         var topLeft: Offset = Offset.Zero
         var size: Size = Size.Zero
+
+        override var focusPoint: Offset = Offset.Unspecified
+            get() {
+                return if (field == Offset.Unspecified) {
+                    Offset(
+                        x = topLeft.x + size.width / 2,
+                        y = topLeft.y + size.height / 2
+                    )
+                } else {
+                    field
+                }
+            }
+
         override operator fun contains(location: Offset): Boolean {
             return location.intersectOval(topLeft + size.center, size)
         }
 
-        override fun clone(): Oval {
-            val rect = super.clone() as Oval
-            rect.topLeft = topLeft
-            rect.size = size
-            return rect
+        override fun copy(other: DrawElement): DrawElement {
+            if (other is Oval) {
+                topLeft = other.topLeft
+                size = other.size
+                color = other.color
+                focusPoint = other.focusPoint
+            }
+            return this
         }
 
         override fun toString(): String {
@@ -873,9 +727,7 @@ sealed class DrawElement : Cloneable {
 
             if (color != other.color) return false
             if (topLeft != other.topLeft) return false
-            if (size != other.size) return false
-
-            return true
+            return size == other.size
         }
 
         override fun hashCode(): Int {
@@ -889,7 +741,7 @@ sealed class DrawElement : Cloneable {
     @Stable
     class Arc : DrawElement() {
         var color: Color = Color.Unspecified
-        var leftTop: Offset = Offset.Zero
+        var topLeft: Offset = Offset.Zero
         var size: Size = Size.Zero
         var startAngle: Float = 0f
         var sweepAngle: Float = 0f
@@ -897,7 +749,7 @@ sealed class DrawElement : Cloneable {
         override operator fun contains(location: Offset): Boolean {
             return if (0 < strokeWidth) {
                 location.intersectArcStrokeWidth(
-                    leftTop = leftTop,
+                    leftTop = topLeft,
                     size = size,
                     startAngle = startAngle,
                     sweepAngle = sweepAngle,
@@ -905,7 +757,7 @@ sealed class DrawElement : Cloneable {
                 )
             } else {
                 location.intersectArc(
-                    leftTop = leftTop,
+                    leftTop = topLeft,
                     size = size,
                     startAngle = startAngle,
                     sweepAngle = sweepAngle
@@ -913,18 +765,21 @@ sealed class DrawElement : Cloneable {
             }
         }
 
-        override fun clone(): Arc {
-            val arc = super.clone() as Arc
-            arc.leftTop = leftTop
-            arc.size = size
-            arc.startAngle = startAngle
-            arc.sweepAngle = sweepAngle
-            arc.strokeWidth = strokeWidth
-            return arc
+        override fun copy(other: DrawElement): DrawElement {
+            if (other is Arc) {
+                color = other.color
+                topLeft = other.topLeft
+                size = other.size
+                startAngle = other.startAngle
+                sweepAngle = other.sweepAngle
+                strokeWidth = other.strokeWidth
+                focusPoint = other.focusPoint
+            }
+            return this
         }
 
         override fun toString(): String {
-            return "Arc(color=$color, leftTop=$leftTop, size=$size, startAngle=$startAngle, sweepAngle=$sweepAngle, strokeWidth=$strokeWidth)"
+            return "Arc(color=$color, topLeft=$topLeft, size=$size, startAngle=$startAngle, sweepAngle=$sweepAngle, strokeWidth=$strokeWidth)"
         }
 
         override fun equals(other: Any?): Boolean {
@@ -934,18 +789,16 @@ sealed class DrawElement : Cloneable {
             other as Arc
 
             if (color != other.color) return false
-            if (leftTop != other.leftTop) return false
+            if (topLeft != other.topLeft) return false
             if (size != other.size) return false
             if (startAngle != other.startAngle) return false
             if (sweepAngle != other.sweepAngle) return false
-            if (strokeWidth != other.strokeWidth) return false
-
-            return true
+            return strokeWidth == other.strokeWidth
         }
 
         override fun hashCode(): Int {
             var result = color.hashCode()
-            result = 31 * result + leftTop.hashCode()
+            result = 31 * result + topLeft.hashCode()
             result = 31 * result + size.hashCode()
             result = 31 * result + startAngle.hashCode()
             result = 31 * result + sweepAngle.hashCode()

@@ -21,7 +21,6 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import me.jack.compose.chart.component.BubbleChart
-import me.jack.compose.chart.component.TapGestures
 import me.jack.compose.chart.component.rememberOnTap
 import me.jack.compose.chart.component.toPx
 import me.jack.compose.chart.measure.rememberFixedContentMeasurePolicy
@@ -73,7 +72,7 @@ class BubbleDemos {
                     modifier = Modifier.height(240.dp),
                     contentMeasurePolicy = rememberFixedVerticalContentMeasurePolicy(32.dp.toPx()),
                     chartDataset = buildChartDataset(),
-                    tapGestures = TapGestures<BubbleData>().onTap {
+                    tapGestures = rememberOnTap {
                         currentItem = it
                         snackBarVisible = true
                     }
