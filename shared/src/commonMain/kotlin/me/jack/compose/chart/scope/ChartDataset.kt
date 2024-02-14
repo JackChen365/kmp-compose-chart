@@ -331,6 +331,7 @@ inline fun <T> ChartDataset<T>.sumOf(
 inline fun <T> ChartDataset<T>.maxOf(
     start: Int = 0, end: Int = Int.MAX_VALUE, block: (T) -> Float
 ): Float {
+    if (isEmpty) return 0f
     var maxValue = Float.MIN_VALUE
     forEachGroup { chartGroup ->
         forEach(chartGroup, start, end) { chartData ->
@@ -343,6 +344,7 @@ inline fun <T> ChartDataset<T>.maxOf(
 inline fun <T> ChartDataset<T>.minOf(
     start: Int = 0, end: Int = Int.MAX_VALUE, block: (T) -> Float
 ): Float {
+    if (isEmpty) return 0f
     var minValue = Float.MAX_VALUE
     chartGroups.forEach { group ->
         forEach(group, start, end) { chartData ->
@@ -403,6 +405,12 @@ fun <T> ChartDataset<T>.getChartGroupData(currentIndex: Int): List<T> {
     }
     return chartGroupData
 }
+
+val ChartDataset<*>.isEmpty: Boolean
+    get() = 0 == size
+
+val ChartDataset<*>.isNotEmpty: Boolean
+    get() = !isEmpty
 
 interface ChartDataset<T> {
     val dataset: Map<String, List<T>>

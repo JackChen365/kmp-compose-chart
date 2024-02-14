@@ -2,11 +2,28 @@ package me.jack.compose.chart.component
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.ripple.rememberRipple
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.toMutableStateMap
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
@@ -24,6 +41,7 @@ import me.jack.compose.chart.context.isElementAvailable
 import me.jack.compose.chart.context.requireChartScrollState
 import me.jack.compose.chart.scope.ChartAnchor
 import me.jack.compose.chart.scope.ChartScope
+import me.jack.compose.chart.scope.MutableChartDataset
 import me.jack.compose.chart.scope.SingleChartScope
 import me.jack.compose.chart.scope.chartChildDivider
 import me.jack.compose.chart.scope.chartGroupDivider
@@ -348,6 +366,7 @@ fun <T> SingleChartScope<T>.ChartAverageAcrossRanksComponent(
     maxValueEvaluator: (T) -> Float
 ) {
     val maxValue = chartDataset.rememberMaxValue(maxValueEvaluator)
+    if (0 >= maxValue) return
     ChartAverageAcrossRanksComponent(
         modifier = Modifier.clipToBounds()
             .background(color = spec.backgroundColor)
@@ -386,6 +405,70 @@ fun ChartAverageAcrossRanksComponent(
                     (this.size.height - textLayoutResult.size.height) / 2f,
                 )
             )
+        }
+    }
+}
+
+open class EditDatasetSpec(
+    val padding: PaddingValues = PaddingValues(12.dp),
+    val indicationSize: Dp = 24.dp,
+    val indicationColor: Color = Color.Blue,
+    val textColor: Color = Color.Black,
+    val textSize: TextUnit = 12.sp
+) : ChartComponentSpec
+
+@Composable
+fun <T> SingleChartScope<T>.ChartEditDatasetComponent(
+    spec: EditDatasetSpec = LocalChartTheme.current.editDatasetSpec
+) {
+    val mutableChartDataset = chartDataset as MutableChartDataset
+    val chartGroups = remember(Unit) {
+        mutableChartDataset.chartGroups.toList()
+    }
+    val originChartGroupDataset = remember(Unit) {
+        chartGroups.map { it to mutableChartDataset.dataset[it] }.toMutableStateMap()
+    }
+    Box(modifier = Modifier.fillMaxSize().padding(spec.padding)) {
+        Column(modifier = Modifier.align(Alignment.TopEnd)) {
+            val chartGroupSelectStateMap = remember {
+                chartGroups.map { it to true }.toMutableStateMap()
+            }
+            chartGroups.forEach { chartGroup ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = rememberRipple(color = MaterialTheme.colorScheme.primary),
+                        onClick = {
+                            chartGroupSelectStateMap[chartGroup] =
+                                !chartGroupSelectStateMap.getOrDefault(chartGroup, false)
+                            if (true == chartGroupSelectStateMap[chartGroup]) {
+                                val chartData = originChartGroupDataset[chartGroup]
+                                if (null != chartData) {
+                                    mutableChartDataset.add(chartGroup, chartData)
+                                }
+                            } else {
+                                mutableChartDataset.remove(chartGroup)
+                            }
+                        }
+                    )
+                ) {
+                    Spacer(
+                        modifier = Modifier.size(spec.indicationSize)
+                            .background(
+                                color = if (chartGroupSelectStateMap.getOrDefault(
+                                        chartGroup,
+                                        false
+                                    )
+                                ) spec.indicationColor else spec.indicationColor.copy(0.4f),
+                                shape = RoundedCornerShape(4.dp)
+                            )
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(text = chartGroup, color = spec.textColor, fontSize = spec.textSize)
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+            }
         }
     }
 }

@@ -173,6 +173,7 @@ fun SingleChartScope<LineData>.ChartLineComponent(
     lineSpec: LineSpec = LocalChartTheme.current.lineSpec
 ) {
     val maxValue = chartDataset.rememberMaxValue { it.value }
+    if (0 >= maxValue) return
     val circleRadiusPx = lineSpec.circleRadius.toPx()
     LazyChartCanvas(
         modifier = Modifier.fillMaxSize()
@@ -298,8 +299,9 @@ fun SingleChartScope<LineData>.CurveLineComponent(
 private fun SingleChartScope<LineData>.HorizontalCurveLine(
     spec: CurveLineSpec = LocalChartTheme.current.curveLineSpec,
 ) {
-    val path = remember { Path() }
     val maxValue = chartDataset.rememberMaxValue { it.value }
+    if (0 >= maxValue) return
+    val path = remember { Path() }
     ChartCanvas(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -383,6 +385,7 @@ fun SingleChartScope<LineData>.ChartStockLineComponent(
     strokeWidth: Dp = 1.dp,
 ) {
     val maxValue = chartDataset.rememberMaxValue { it.value }
+    if (0 >= maxValue) return
     LazyChartCanvas(
         modifier = Modifier.fillMaxSize()
     ) { current, next ->

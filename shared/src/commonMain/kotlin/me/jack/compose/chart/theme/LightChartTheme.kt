@@ -21,6 +21,7 @@ import me.jack.compose.chart.component.DarkLineSpec
 import me.jack.compose.chart.component.DarkMarkerSpec
 import me.jack.compose.chart.component.DonutSpec
 import me.jack.compose.chart.component.DonutTextSpec
+import me.jack.compose.chart.component.EditDatasetSpec
 import me.jack.compose.chart.component.GridDividerSpec
 import me.jack.compose.chart.component.IndicationSpec
 import me.jack.compose.chart.component.LineSpec
@@ -64,7 +65,8 @@ open class LightChartTheme(
     val donutSpec: DonutSpec = DonutSpec(),
     val donutTextSpec: DonutTextSpec = DonutTextSpec(),
     val pieSpec: PieSpec = PieSpec(),
-    val pieTextSpec: PieTextSpec = PieTextSpec()
+    val pieTextSpec: PieTextSpec = PieTextSpec(),
+    val editDatasetSpec: EditDatasetSpec = EditDatasetSpec()
 )
 
 class DarkChartTheme(
@@ -81,7 +83,8 @@ class DarkChartTheme(
     donutSpec: DonutSpec = DonutSpec(),
     lineSpec: LineSpec = DarkLineSpec(),
     pieSpec: PieSpec = PieSpec(),
-    pieTextSpec: PieTextSpec = PieTextSpec()
+    pieTextSpec: PieTextSpec = PieTextSpec(),
+    editGroupSpec: EditDatasetSpec = EditDatasetSpec()
 ) : LightChartTheme(
     borderSpec = borderSpec,
     candleStickLeftSideSpec = candleStickLeftSideLabelSpec,
@@ -96,5 +99,6 @@ class DarkChartTheme(
     donutSpec = donutSpec,
     lineSpec = lineSpec,
     pieSpec = pieSpec,
-    pieTextSpec = pieTextSpec
+    pieTextSpec = pieTextSpec,
+    editDatasetSpec = editGroupSpec
 )

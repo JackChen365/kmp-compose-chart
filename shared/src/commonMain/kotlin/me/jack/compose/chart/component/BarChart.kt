@@ -111,9 +111,8 @@ fun BarChart(
  */
 @Composable
 fun BarChartScope.BarComponent() {
-    val maxValue = chartDataset.rememberMaxValue {
-        it.value
-    }
+    val maxValue = chartDataset.rememberMaxValue { it.value }
+    if (0 >= maxValue) return
     LazyChartCanvas(
         modifier = Modifier.fillMaxSize()
     ) { current ->
@@ -192,6 +191,7 @@ fun BarChartScope.BarStickMarkComponent(
     radius: Dp = 8.dp
 ) {
     val maxValue = chartDataset.rememberMaxValue { it.value }
+    if (0 >= maxValue) return
     LazyChartCanvas(
         modifier = Modifier.fillMaxSize()
     ) { _ ->

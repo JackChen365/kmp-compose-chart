@@ -46,8 +46,8 @@ import androidx.compose.ui.unit.sp
 import me.jack.compose.chart.draw.ChartCanvas
 import me.jack.compose.chart.draw.DrawElement
 import me.jack.compose.chart.draw.isHoveredOrPressed
-import me.jack.compose.chart.scope.ChartScope
 import me.jack.compose.chart.scope.SingleChartScope
+import me.jack.compose.chart.scope.isEmpty
 import me.jack.compose.chart.scope.isHorizontal
 import me.jack.compose.chart.theme.LocalChartTheme
 import me.jack.compose.chart.util.convertAngleToCoordinates
@@ -83,14 +83,14 @@ class DarkMarkerSpec(
 )
 
 @Composable
-fun ChartScope.RectMarkerComponent(
+fun SingleChartScope<*>.RectMarkerComponent(
     spec: MarkerSpec = LocalChartTheme.current.markerSpec,
     topLeft: Offset,
     size: Size,
     displayInfo: String,
     focusPoint: Offset = Offset.Unspecified
 ) {
-    if (!isHoveredOrPressed()) return
+    if (!isHoveredOrPressed() || chartDataset.isEmpty) return
     val contentSizeState by animateSizeAsState(size)
     val topLeftState by animateOffsetAsState(topLeft)
     val focusPointState by animateOffsetAsState(focusPoint)
@@ -284,6 +284,7 @@ fun SingleChartScope<*>.MarkerDashLineComponent(
     topLeft: Offset,
     contentSize: Size
 ) {
+    if(!isHoveredOrPressed() || chartDataset.isEmpty) return
     val pathEffect = remember {
         PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
     }

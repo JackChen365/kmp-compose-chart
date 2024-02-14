@@ -39,7 +39,7 @@ typealias SimpleDonutData = SimplePieData
 
 class DonutSpec(
     val strokeWidth: Dp = 36.dp,
-    val pressedScale: Float = 1.01f,
+    val pressedScale: Float = 1.1f,
     val pressedAlpha: Float = 0.8f
 ) : ChartComponentSpec
 

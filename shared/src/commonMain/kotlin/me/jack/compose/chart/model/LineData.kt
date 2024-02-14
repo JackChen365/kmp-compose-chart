@@ -1,3 +1,5 @@
+@file:Suppress("unused")
+
 package me.jack.compose.chart.model
 
 import androidx.compose.ui.graphics.Color

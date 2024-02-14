@@ -132,9 +132,10 @@ fun CandleStickChart(
 fun CandleStickChartScope.ChartCandleStickComponent(
     spec: CandleStickSpec = LocalChartTheme.current.candleStickSpec
 ) {
+    val highestValue = chartDataset.rememberMaxValue { it.high }
+    if (0 >= highestValue) return
     val candleStickWidth = spec.candleStickSize.toPx()
     val stickLineWidth = spec.stackLineSize.toPx()
-    val highestValue = chartDataset.rememberMaxValue { it.high }
     LazyChartCanvas(
         modifier = Modifier.fillMaxSize()
     ) { candleData ->
@@ -193,9 +194,10 @@ fun CandleStickChartScope.ChartCandleDataMarkerComponent() {
 fun CandleStickChartScope.CandleStickLeftSideLabel(
     spec: CandleStickLeftSideSpec = LocalChartTheme.current.candleStickLeftSideSpec
 ) {
-    val textMeasurer = rememberTextMeasurer()
     val lowest = chartDataset.rememberMinValue { it.low }
     val highest = chartDataset.rememberMaxValue { it.high }
+    if (0 >= lowest || 0 >= highest) return
+    val textMeasurer = rememberTextMeasurer()
     Canvas(
         modifier = Modifier
             .anchor(ChartAnchor.Start)
@@ -244,6 +246,7 @@ fun CandleStickChartScope.CandleStickBarComponent(
     spec: CandleStickBarSpec = LocalChartTheme.current.candleStickBarSpec
 ) {
     val maxValue = chartDataset.rememberMaxValue { it.high }
+    if (0 >= maxValue) return
     LazyChartCanvas(
         modifier = Modifier
             .anchor(ChartAnchor.Bottom)
@@ -265,6 +268,7 @@ fun CandleStickChartScope.CandleStickScrollableBarComponent(
     spec: CandleStickBarSpec = LocalChartTheme.current.candleStickBarSpec
 ) {
     val maxValue = chartDataset.rememberMaxValue { it.high }
+    if (0 >= maxValue) return
     ChartBox(
         modifier = Modifier
             .anchor(ChartAnchor.Bottom)

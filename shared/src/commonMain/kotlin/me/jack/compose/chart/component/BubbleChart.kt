@@ -122,6 +122,7 @@ fun BubbleChartScope.BubbleComponent(
 ) {
     val maxValue = chartDataset.rememberMaxValue { it.value }
     val maxVolume = chartDataset.rememberMaxValue { it.volume }
+    if (0 >= maxValue || 0 >= maxVolume) return
     val volumeSize = bubbleSpec.maxRadius.toPx() / maxVolume
     LazyChartCanvas(
         modifier = Modifier.fillMaxSize()
