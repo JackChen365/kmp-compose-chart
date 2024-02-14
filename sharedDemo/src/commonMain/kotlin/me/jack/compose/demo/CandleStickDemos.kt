@@ -45,29 +45,13 @@ import me.jack.compose.chart.scope.MutableChartDataset
 import me.jack.compose.chart.scope.SINGLE_GROUP_NAME
 import me.jack.compose.chart.scope.SingleChartScope
 import me.jack.compose.chart.scope.currentRange
-import me.jack.compose.chart.scope.rememberChartMutableDataGroup
+import me.jack.compose.demo.data.buildCandleStickDataset
 import kotlin.random.Random
 
 class CandleStickDemos {
     @Composable
     fun PerformanceTestDemo() {
-        val chartDataset: MutableChartDataset<CandleData> = rememberChartMutableDataGroup {
-            dataset(SINGLE_GROUP_NAME) {
-                items(5) {
-                    val low = Random.nextInt(50)
-                    val high = Random.nextInt(low + 10, 100)
-                    val start = Random.nextInt(low, low + (high - low) / 2)
-                    val end = Random.nextInt(low + (high - low) / 2, high)
-                    val win = Random.nextBoolean()
-                    SimpleCandleData(
-                        high = high.toFloat(),
-                        low = low.toFloat(),
-                        open = if (win) end.toFloat() else start.toFloat(),
-                        close = if (!win) end.toFloat() else start.toFloat()
-                    )
-                }
-            }
-        }
+        val chartDataset: MutableChartDataset<CandleData> = buildCandleStickDataset(itemCount = 5)
         val scrollableState = rememberScrollableState()
         var isMarketOpened by remember {
             mutableStateOf(true)
@@ -84,8 +68,7 @@ class CandleStickDemos {
             CandleStickChart(modifier = Modifier.requiredHeight(360.dp),
                 candleStickSize = 20.dp,
                 chartDataset = chartDataset,
-                scrollableState = scrollableState,
-                tapGestures = rememberOnTap {  }
+                scrollableState = scrollableState
             ) {
                 CandleStickLeftSideLabel()
                 ChartBorderComponent()
@@ -115,23 +98,7 @@ class CandleStickDemos {
 
     @Composable
     fun CandleStickChartDemo() {
-        val chartDataset: ChartDataset<CandleData> = rememberChartMutableDataGroup {
-            dataset("Group") {
-                items(50) {
-                    val low = Random.nextInt(50)
-                    val high = Random.nextInt(low + 10, 100)
-                    val start = Random.nextInt(low, low + (high - low) / 2)
-                    val end = Random.nextInt(low + (high - low) / 2, high)
-                    val win = Random.nextBoolean()
-                    SimpleCandleData(
-                        high = high.toFloat(),
-                        low = low.toFloat(),
-                        open = if (win) end.toFloat() else start.toFloat(),
-                        close = if (!win) end.toFloat() else start.toFloat()
-                    )
-                }
-            }
-        }
+        val chartDataset: ChartDataset<CandleData> = buildCandleStickDataset()
         Column {
             CandleStickChart(
                 modifier = Modifier.requiredHeight(320.dp),
@@ -156,23 +123,7 @@ class CandleStickDemos {
 
     @Composable
     fun CandleStickChartMutableDataDemo() {
-        val chartDataset: MutableChartDataset<CandleData> = rememberChartMutableDataGroup {
-            dataset(SINGLE_GROUP_NAME) {
-                items(50) {
-                    val low = Random.nextInt(50)
-                    val high = Random.nextInt(low + 10, 100)
-                    val start = Random.nextInt(low, low + (high - low) / 2)
-                    val end = Random.nextInt(low + (high - low) / 2, high)
-                    val win = Random.nextBoolean()
-                    SimpleCandleData(
-                        high = high.toFloat(),
-                        low = low.toFloat(),
-                        open = if (win) end.toFloat() else start.toFloat(),
-                        close = if (!win) end.toFloat() else start.toFloat()
-                    )
-                }
-            }
-        }
+        val chartDataset: MutableChartDataset<CandleData> = buildCandleStickDataset()
         val coroutineScope = rememberCoroutineScope()
         val scrollableState = rememberScrollableState()
         Column {
@@ -209,14 +160,20 @@ class CandleStickDemos {
                     val start = Random.nextInt(low, low + (high - low) / 2)
                     val end = Random.nextInt(low + (high - low) / 2, high)
                     val win = Random.nextBoolean()
+                    val chartGroupName = chartDataset.chartGroups.first()
                     chartDataset.add(
-                        chartGroup = SINGLE_GROUP_NAME, chartData = SimpleCandleData(
+                        chartGroup = chartGroupName,
+                        chartData = SimpleCandleData(
                             high = high.toFloat(),
                             low = low.toFloat(),
                             open = if (win) end.toFloat() else start.toFloat(),
                             close = if (!win) end.toFloat() else start.toFloat()
                         )
                     )
+                    coroutineScope.launch {
+                        delay(100)
+                        scrollableState.scrollToItem(0,chartDataset.size)
+                    }
                 }) {
                     Text(text = "Add item")
                 }
@@ -269,23 +226,7 @@ class CandleStickDemos {
 
     @Composable
     fun CandleStickChartAutoScrollDemo() {
-        val chartDataset: MutableChartDataset<CandleData> = rememberChartMutableDataGroup {
-            dataset(SINGLE_GROUP_NAME) {
-                items(50) {
-                    val low = Random.nextInt(50)
-                    val high = Random.nextInt(low + 10, 100)
-                    val start = Random.nextInt(low, low + (high - low) / 2)
-                    val end = Random.nextInt(low + (high - low) / 2, high)
-                    val win = Random.nextBoolean()
-                    SimpleCandleData(
-                        high = high.toFloat(),
-                        low = low.toFloat(),
-                        open = if (win) end.toFloat() else start.toFloat(),
-                        close = if (!win) end.toFloat() else start.toFloat()
-                    )
-                }
-            }
-        }
+        val chartDataset: MutableChartDataset<CandleData> = buildCandleStickDataset()
         val scrollableState = rememberScrollableState()
         var isAutoScroll by remember {
             mutableStateOf(true)
@@ -324,7 +265,7 @@ class CandleStickDemos {
         LaunchedEffect(Unit) {
             launch {
                 while (true) {
-                    delay(1000L)
+                    delay(300L)
                     val visibleSize = (currentRange.last - currentRange.first)
                     val nextIndex = Random.nextInt(chartDataset.size - visibleSize)
                     scrollableState.animateScrollToItem(0, nextIndex)
@@ -335,23 +276,7 @@ class CandleStickDemos {
 
     @Composable
     fun StockTradeDemo() {
-        val chartDataset: MutableChartDataset<CandleData> = rememberChartMutableDataGroup {
-            dataset(SINGLE_GROUP_NAME) {
-                items(5) {
-                    val low = Random.nextInt(50)
-                    val high = Random.nextInt(low + 10, 100)
-                    val start = Random.nextInt(low, low + (high - low) / 2)
-                    val end = Random.nextInt(low + (high - low) / 2, high)
-                    val win = Random.nextBoolean()
-                    SimpleCandleData(
-                        high = high.toFloat(),
-                        low = low.toFloat(),
-                        open = if (win) end.toFloat() else start.toFloat(),
-                        close = if (!win) end.toFloat() else start.toFloat()
-                    )
-                }
-            }
-        }
+        val chartDataset: MutableChartDataset<CandleData> = buildCandleStickDataset()
         val scrollableState = rememberScrollableState()
         var isMarketOpened by remember {
             mutableStateOf(true)
@@ -411,8 +336,9 @@ class CandleStickDemos {
                     val start = Random.nextInt(low, low + (high - low) / 2)
                     val end = Random.nextInt(low + (high - low) / 2, high)
                     val win = Random.nextBoolean()
+                    val chartGroupName = chartDataset.chartGroups.first()
                     chartDataset.add(
-                        chartGroup = SINGLE_GROUP_NAME,
+                        chartGroup = chartGroupName,
                         chartData = SimpleCandleData(
                             high = high.toFloat(),
                             low = low.toFloat(),

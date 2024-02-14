@@ -41,6 +41,16 @@ fun rememberFixedOverlayContentMeasurePolicy(
 }
 
 @Composable
+fun rememberFixedVerticalOverlayContentMeasurePolicy(
+    fixedRowSize: Float,
+    divideSize: Float = 0f
+): ChartContentMeasurePolicy {
+    return remember {
+        FixedOverlayContentMeasurePolicy(fixedRowSize, divideSize, Orientation.Vertical)
+    }
+}
+
+@Composable
 fun rememberBoxChartContentMeasurePolicy() = remember {
     BoxChartContentMeasurePolicy()
 }

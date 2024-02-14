@@ -16,7 +16,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -26,31 +25,9 @@ import me.jack.compose.chart.component.toPx
 import me.jack.compose.chart.measure.rememberFixedContentMeasurePolicy
 import me.jack.compose.chart.measure.rememberFixedVerticalContentMeasurePolicy
 import me.jack.compose.chart.model.BubbleData
-import me.jack.compose.chart.model.SimpleBubbleData
-import me.jack.compose.chart.scope.ChartDataset
-import me.jack.compose.chart.scope.rememberChartDataGroup
-import kotlin.random.Random
+import me.jack.compose.demo.data.buildBubbleDataset
 
 class BubbleDemos {
-
-    @Composable
-    private fun buildChartDataset(): ChartDataset<BubbleData> {
-        return rememberChartDataGroup {
-            repeat(3) { groupIndex ->
-                val groupColor = Color(Random.nextInt(0, 255), Random.nextInt(0, 255), Random.nextInt(0, 255), 0xFF)
-                dataset("Group:$groupIndex") {
-                    items(50) {
-                        SimpleBubbleData(
-                            label = "Label$groupIndex-$it",
-                            value = Random.nextInt(10, 100).toFloat(),
-                            volume = Random.nextInt(2, 12).toFloat(),
-                            color = groupColor
-                        )
-                    }
-                }
-            }
-        }
-    }
 
     @Composable
     fun BubbleChartDemo() {
@@ -61,7 +38,7 @@ class BubbleDemos {
                 BubbleChart(
                     modifier = Modifier.height(240.dp),
                     contentMeasurePolicy = rememberFixedContentMeasurePolicy(32.dp.toPx()),
-                    chartDataset = buildChartDataset(),
+                    chartDataset = buildBubbleDataset(),
                     tapGestures = rememberOnTap {
                         currentItem = it
                         snackBarVisible = true
@@ -71,7 +48,7 @@ class BubbleDemos {
                 BubbleChart(
                     modifier = Modifier.height(240.dp),
                     contentMeasurePolicy = rememberFixedVerticalContentMeasurePolicy(32.dp.toPx()),
-                    chartDataset = buildChartDataset(),
+                    chartDataset = buildBubbleDataset(),
                     tapGestures = rememberOnTap {
                         currentItem = it
                         snackBarVisible = true

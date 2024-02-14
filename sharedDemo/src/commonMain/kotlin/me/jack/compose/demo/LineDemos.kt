@@ -35,30 +35,18 @@ import me.jack.compose.chart.component.toPx
 import me.jack.compose.chart.measure.rememberFixedOverlayContentMeasurePolicy
 import me.jack.compose.chart.model.LineData
 import me.jack.compose.chart.model.SimpleLineData
-import me.jack.compose.chart.scope.ChartDataset
 import me.jack.compose.chart.scope.LineChartScope
 import me.jack.compose.chart.scope.fastForEach
 import me.jack.compose.chart.scope.forEachGroup
-import me.jack.compose.chart.scope.rememberChartDataGroup
-import me.jack.compose.chart.scope.rememberChartMutableDataGroup
+import me.jack.compose.demo.data.buildAnimateLineDataset
+import me.jack.compose.demo.data.buildLineDataset
 import kotlin.random.Random
 
 class LineDemos {
 
     @Composable
     fun LineChartDemo() {
-        val dataset = rememberChartDataGroup<LineData> {
-            repeat(3) {
-                val groupColor = Color(Random.nextInt(0, 255), Random.nextInt(0, 255), Random.nextInt(0, 255), 0xFF)
-                dataset("Group:$it") {
-                    items(50) {
-                        SimpleLineData(
-                            value = Random.nextInt(30, 100).toFloat(), color = groupColor
-                        )
-                    }
-                }
-            }
-        }
+        val dataset = buildLineDataset()
         Column {
             LineChart(
                 modifier = Modifier.height(240.dp),
@@ -79,16 +67,10 @@ class LineDemos {
         var groupCounter by remember {
             mutableIntStateOf(0)
         }
-        val dataset = rememberChartMutableDataGroup<LineData> {
-            val groupColor = Color(Random.nextInt(0, 255), Random.nextInt(0, 255), Random.nextInt(0, 255), 0xFF)
-            dataset("Group${groupCounter++}") {
-                items(5) {
-                    SimpleLineData(
-                        value = Random.nextInt(30, 100).toFloat(), color = groupColor
-                    )
-                }
-            }
-        }
+        val dataset = buildLineDataset(
+            groupCount = 1,
+            itemCount = 5
+        )
         Column {
             CurveLineChart(
                 modifier = Modifier.height(240.dp),
@@ -179,7 +161,7 @@ class LineDemos {
             LineChart(
                 modifier = Modifier.height(240.dp),
                 contentMeasurePolicy = rememberFixedOverlayContentMeasurePolicy(32.dp.toPx()),
-                chartDataset = animatableDataset(scope)
+                chartDataset = buildAnimateLineDataset(scope = scope, itemCount = 5000)
             ) {
                 LaunchAnimation(scope)
                 LineChartContent()
@@ -187,29 +169,12 @@ class LineDemos {
             CurveLineChart(
                 modifier = Modifier.height(240.dp),
                 contentMeasurePolicy = rememberFixedOverlayContentMeasurePolicy(32.dp.toPx()),
-                chartDataset = animatableDataset(scope)
+                chartDataset = buildAnimateLineDataset(scope = scope, itemCount = 5000)
             ) {
                 LaunchAnimation(scope)
                 CurveLineChartContent()
             }
         }
-    }
-
-    @Composable
-    private fun animatableDataset(scope: CoroutineScope): ChartDataset<LineData> {
-        val animatableDataset = rememberChartDataGroup<LineData> {
-            repeat(3) {
-                val groupColor = Color(Random.nextInt(0, 255), Random.nextInt(0, 255), Random.nextInt(0, 255), 0xFF)
-                animatableDataset(scope, "Group:$it") {
-                    items(5000) {
-                        SimpleLineData(
-                            value = Random.nextInt(30, 100).toFloat(), color = groupColor
-                        )
-                    }
-                }
-            }
-        }
-        return animatableDataset
     }
 
     @Composable
@@ -230,18 +195,10 @@ class LineDemos {
 
     @Composable
     fun StockLineDataAnimationDemo() {
-        val dataset = rememberChartMutableDataGroup<LineData> {
-            repeat(3) { groupIndex ->
-                val groupColor = Color(Random.nextInt(0, 255), Random.nextInt(0, 255), Random.nextInt(0, 255), 0xFF)
-                dataset("Group-:$groupIndex") {
-                    items(500) {
-                        SimpleLineData(
-                            value = Random.nextInt(30, 100).toFloat(), color = groupColor
-                        )
-                    }
-                }
-            }
-        }
+        val dataset = buildLineDataset(
+            groupCount = 3,
+            itemCount = 500
+        )
         Column {
             StockLineChart(
                 modifier = Modifier.height(240.dp),
@@ -258,7 +215,7 @@ class LineDemos {
                         color = Color.LightGray.copy(0.2f),
                     )
                 )
-                ChartAverageAcrossRanksComponent{ it.value }
+                ChartAverageAcrossRanksComponent { it.value }
                 ChartContent()
             }
         }

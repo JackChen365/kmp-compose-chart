@@ -27,7 +27,6 @@ import me.jack.compose.chart.model.SimplePieData
 import me.jack.compose.chart.scope.ChartDataset
 import me.jack.compose.chart.scope.DonutChartScope
 import me.jack.compose.chart.scope.PieChartScope
-import me.jack.compose.chart.scope.SingleChartScope
 import me.jack.compose.chart.scope.isFirstGroupAndFirstIndex
 import me.jack.compose.chart.scope.rememberSumValue
 import me.jack.compose.chart.scope.withChartElementInteraction
@@ -49,7 +48,7 @@ fun DonutChart(
     chartDataset: ChartDataset<DonutData>,
     spec: DonutSpec = LocalChartTheme.current.donutSpec,
     tapGestures: TapGestures<DonutData> = rememberCombinedTapGestures(),
-    content: @Composable SingleChartScope<DonutData>.() -> Unit = simpleChartContent
+    content: @Composable DonutChartScope.() -> Unit = simpleChartContent
 ) {
     val chartContext = remember {
         ChartContext.chartInteraction(MutableInteractionSource())

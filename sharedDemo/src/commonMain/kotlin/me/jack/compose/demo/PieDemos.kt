@@ -16,18 +16,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import me.jack.compose.chart.component.PieChart
 import me.jack.compose.chart.component.rememberCombinedTapGestures
-import me.jack.compose.chart.model.PieData
-import me.jack.compose.chart.model.SimplePieData
-import me.jack.compose.chart.scope.ChartDataset
-import me.jack.compose.chart.scope.SINGLE_GROUP_NAME
-import me.jack.compose.chart.scope.rememberChartDataGroup
-import kotlin.random.Random
+import me.jack.compose.demo.data.buildPieChartDataset
 
 class PieDemos {
 
@@ -39,7 +33,10 @@ class PieDemos {
             Column {
                 PieChart(
                     modifier = Modifier.height(240.dp),
-                    chartDataset = buildChartSingleDataset(),
+                    chartDataset = buildPieChartDataset(
+                        groupCount = 1,
+                        itemCount = 5
+                    ),
                     tapGestures = rememberCombinedTapGestures(
                         onTap = {
                             currentHintText = "Tap item value:${it.value}"
@@ -60,7 +57,10 @@ class PieDemos {
                     modifier = Modifier
                         .height(240.dp)
                         .padding(12.dp),
-                    chartDataset = buildChartDataset(),
+                    chartDataset = buildPieChartDataset(
+                        groupCount = 3,
+                        itemCount = 5
+                    ),
                     tapGestures = rememberCombinedTapGestures(
                         onTap = {
                             currentHintText = "Tap item value:${it.value}"
@@ -92,39 +92,6 @@ class PieDemos {
                     },
                     modifier = Modifier.padding(12.dp).align(Alignment.BottomEnd)
                 ) { Text(text = currentHintText) }
-            }
-        }
-    }
-
-    @Composable
-    private fun buildChartDataset(): ChartDataset<PieData> {
-        return rememberChartDataGroup {
-            repeat(3) {
-                val groupColor = Color(Random.nextInt(0, 255), Random.nextInt(0, 255), Random.nextInt(0, 255), 0xFF)
-                dataset("Group:$it") {
-                    items(3) { index ->
-                        SimplePieData(
-                            label = "Label:$index",
-                            value = Random.nextInt(30, 1000).toFloat(),
-                            color = groupColor
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    @Composable
-    private fun buildChartSingleDataset(): ChartDataset<PieData> {
-        return rememberChartDataGroup {
-            dataset(SINGLE_GROUP_NAME) {
-                items(5) { index ->
-                    SimplePieData(
-                        label = "Label:$index",
-                        value = Random.nextInt(30, 1000).toFloat(),
-                        color = Color(Random.nextInt(0, 255), Random.nextInt(0, 255), Random.nextInt(0, 255), 0xFF)
-                    )
-                }
             }
         }
     }

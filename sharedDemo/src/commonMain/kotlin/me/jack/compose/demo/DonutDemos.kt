@@ -16,52 +16,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import me.jack.compose.chart.component.DonutChart
-import me.jack.compose.chart.component.DonutData
-import me.jack.compose.chart.component.SimpleDonutData
 import me.jack.compose.chart.component.rememberCombinedTapGestures
 import me.jack.compose.chart.debug.DebugDonutComponent
-import me.jack.compose.chart.scope.ChartDataset
-import me.jack.compose.chart.scope.SINGLE_GROUP_NAME
-import me.jack.compose.chart.scope.rememberChartDataGroup
-import kotlin.random.Random
+import me.jack.compose.demo.data.buildDonutChartDataset
 
 class DonutDemos {
-    @Composable
-    private fun buildChartDataset(): ChartDataset<DonutData> {
-        return rememberChartDataGroup {
-            repeat(3) {
-                dataset("Group:$it") {
-                    items(5) { index ->
-                        SimpleDonutData(
-                            label = "Label:$index",
-                            value = Random.nextInt(30, 1000).toFloat(),
-                            color = Color(Random.nextInt(0, 255), Random.nextInt(0, 255), Random.nextInt(0, 255), 0xFF)
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    @Composable
-    private fun buildChartSingleDataset(): ChartDataset<DonutData> {
-        return rememberChartDataGroup {
-            dataset(SINGLE_GROUP_NAME) {
-                items(5) { index ->
-                    SimpleDonutData(
-                        label = "Label:$index",
-                        value = Random.nextInt(30, 1000).toFloat(),
-                        color = Color(Random.nextInt(0, 255), Random.nextInt(0, 255), Random.nextInt(0, 255), 0xFF)
-                    )
-                }
-            }
-        }
-    }
 
     @Composable
     fun DonutChartDemo() {
@@ -71,7 +34,10 @@ class DonutDemos {
             Column {
                 DonutChart(
                     modifier = Modifier.height(240.dp),
-                    chartDataset = buildChartDataset(),
+                    chartDataset = buildDonutChartDataset(
+                        groupCount = 1,
+                        itemCount = 5
+                    ),
                     tapGestures = rememberCombinedTapGestures(
                         onTap = {
                             currentHintText = "Tap item value:${it.value}"
@@ -94,7 +60,10 @@ class DonutDemos {
                 DonutChart(
                     modifier = Modifier
                         .height(240.dp),
-                    chartDataset = buildChartSingleDataset(),
+                    chartDataset = buildDonutChartDataset(
+                        groupCount = 3,
+                        itemCount = 5
+                    ),
                     tapGestures = rememberCombinedTapGestures(
                         onTap = {
                             currentHintText = "Tap item value:${it.value}"
