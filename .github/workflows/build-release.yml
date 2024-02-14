@@ -1,0 +1,30 @@
+name: Build and Release Desktop App
+
+on:
+  workflow_dispatch:
+    inputs:
+      gradle_task:
+        description: 'The Gradle task to run.'
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'open-jdk'
+          java-version: '17'
+
+      - name: Build and package desktop app
+        run: ./gradlew ${{ inputs.gradle_task }}
+
+      - name: Upload DMG file
+        uses: actions/upload-artifact@v2
+        with:
+          name: desktop-app-release.dmg
+          path: ./desktopApp/build/distributions/desktopApp-release.dmg
