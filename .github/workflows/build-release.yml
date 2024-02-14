@@ -6,7 +6,7 @@ on:
       gradle_task:
         description: 'The Gradle task to run.'
         required: true
-
+        default: ':desktopApp:packageReleaseDmg'
 jobs:
   build:
     runs-on: ubuntu-latest
