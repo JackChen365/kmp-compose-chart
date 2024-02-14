@@ -317,7 +317,13 @@ private fun Modifier.chartScrollable(
     scrollableState: ChartScrollableState? = null,
     datasetSize: Int
 ): Modifier {
-    val chartScrollState = chartScope.chartContext.chartScrollState as? MutableChartScrollState ?: return this
+    val chartScrollState = chartScope.chartContext.chartScrollState as? MutableChartScrollState
+        ?: return this.onSizeChanged { size ->
+            if (chartScope is MutableScrollableScope) {
+                chartScope.contentSize = size.toSize()
+                chartScope.contentRange = size.toSize()
+            }
+        }
     chartScrollState.density = LocalDensity.current
     val maxOffset = 0f
     var minOffset by remember {

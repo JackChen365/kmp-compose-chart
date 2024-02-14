@@ -17,9 +17,9 @@ import me.jack.compose.chart.context.chartInteraction
 import me.jack.compose.chart.context.scrollable
 import me.jack.compose.chart.context.zoom
 import me.jack.compose.chart.draw.ChartCanvas
+import me.jack.compose.chart.draw.ChartTraceableDrawScope
 import me.jack.compose.chart.draw.DrawElement
 import me.jack.compose.chart.draw.LazyChartCanvas
-import me.jack.compose.chart.draw.UpdateDrawingElementDrawScope
 import me.jack.compose.chart.measure.ChartContentMeasurePolicy
 import me.jack.compose.chart.model.BarData
 import me.jack.compose.chart.scope.BarChartScope
@@ -106,7 +106,7 @@ fun BarChart(
 /**
  * The standard bar component.
  * The component in [BarChartScope] and it helps generate the bar by [BarData]
- * Each bar can be clicked since we use [UpdateDrawingElementDrawScope] and put the drawing element in [clickable]
+ * Each bar can be clicked since we use [ChartTraceableDrawScope] and put the drawing element in [clickable]
  * This component support orientation and you can change the orientation by [ChartContentMeasurePolicy]
  */
 @Composable
@@ -118,13 +118,18 @@ fun BarChartScope.BarComponent() {
         modifier = Modifier.fillMaxSize()
     ) { current ->
         val barItemSize = size.crossAxis / maxValue
-        clickableWithInteraction {
+        animatableWithInteraction {
+            val (topLeft, size) = if (isHorizontal) {
+                Offset(currentLeftTopOffset.x, size.height - barItemSize * current.value) to
+                        Size(childSize.mainAxis, barItemSize * current.value)
+            } else {
+                Offset(0f, currentLeftTopOffset.y) to
+                        Size(barItemSize * current.value, childSize.mainAxis)
+            }
             drawRect(
                 color = current.color whenPressedAnimateTo current.color.copy(alpha = 0.4f),
-                topLeft = if (isHorizontal) Offset(currentLeftTopOffset.x, size.height - barItemSize * current.value)
-                else Offset(0f, currentLeftTopOffset.y),
-                size = if (isHorizontal) Size(childSize.mainAxis, barItemSize * current.value) else
-                    Size(barItemSize * current.value, childSize.mainAxis)
+                topLeft = topLeft,
+                size = size
             )
         }
     }
@@ -151,7 +156,7 @@ fun BarChartScope.BarStackComponent() {
             } else {
                 Offset(offset, currentLeftTopOffset.y) to Size(barItemSize * current.value, childSize.mainAxis)
             }
-            clickable {
+            animatableWithInteraction {
                 drawRect(
                     color = current.color whenPressedAnimateTo current.color.copy(alpha = 0.4f),
                     topLeft = topLeft,
@@ -171,9 +176,9 @@ fun BarChartScope.BarMarkerComponent() {
             topLeft = drawElement.topLeft,
             contentSize = drawElement.size
         )
-        MarkerComponent(
+        RectMarkerComponent(
             topLeft = drawElement.topLeft,
-            contentSize = drawElement.size,
+            size = drawElement.size,
             focusPoint = drawElement.focusPoint,
             displayInfo = "(" + current.value.toString() + ")"
         )

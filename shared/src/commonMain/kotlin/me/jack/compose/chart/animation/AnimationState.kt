@@ -13,6 +13,12 @@ import androidx.compose.animation.core.tween
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.TextUnitType
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlin.reflect.KProperty
@@ -20,10 +26,10 @@ import kotlin.reflect.KProperty
 /**
  * Fire-and-forget animation function for [Int]. This function is overloaded for
  * different parameter types such as [Float], [Color][androidx.compose.ui.graphics.Color], [Offset],
- * etc. When the provided [ChartAnimatableState.value] is changed, the animation will run automatically. If there
- * is already an animation in-flight when [ChartAnimatableState.value] changes, the on-going animation will adjust
+ * etc. When the provided [ChartAnimateState.value] is changed, the animation will run automatically. If there
+ * is already an animation in-flight when [ChartAnimateState.value] changes, the on-going animation will adjust
  * course to animate towards the new target value.
- * You are not supposed to use this [ChartIntAnimatableState] directly, we use it [ChartCanvas]
+ * You are not supposed to use this [ChartIntAnimateState] directly, we use it [ChartCanvas]
  *
  * ```
  * ChartCanvas(modifier = Modifier.fillMaxSize()){
@@ -35,56 +41,80 @@ import kotlin.reflect.KProperty
  * }
  * ```
  */
-fun intAnimatableState(
+fun intAnimateState(
     scope: CoroutineScope,
     initialValue: Int = 0,
     durationMillis: Int = DefaultDurationMillis
-): ChartIntAnimatableState {
-    return ChartIntAnimatableState(scope, initialValue, durationMillis)
+): ChartIntAnimateState {
+    return ChartIntAnimateState(scope, initialValue, durationMillis)
 }
 
-fun floatAnimatableState(
+fun floatAnimateState(
     scope: CoroutineScope,
     initialValue: Float = 0f,
     durationMillis: Int = DefaultDurationMillis
-): ChartFloatAnimatableState {
-    return ChartFloatAnimatableState(scope, initialValue, durationMillis)
+): ChartFloatAnimateState {
+    return ChartFloatAnimateState(scope, initialValue, durationMillis)
 }
 
-fun colorAnimatableState(
+fun colorAnimateState(
     scope: CoroutineScope,
     initialValue: Color = Color.Transparent,
     durationMillis: Int = DefaultDurationMillis
-): ChartColorAnimatableState {
-    return ChartColorAnimatableState(scope, initialValue, durationMillis)
+): ChartColorAnimateState {
+    return ChartColorAnimateState(scope, initialValue, durationMillis)
 }
 
-fun sizeAnimatableState(
+fun sizeAnimateState(
     scope: CoroutineScope,
     initialValue: Size = Size.Zero,
     durationMillis: Int = DefaultDurationMillis
-): ChartSizeAnimatableState {
-    return ChartSizeAnimatableState(scope, initialValue, durationMillis)
+): ChartSizeAnimateState {
+    return ChartSizeAnimateState(scope, initialValue, durationMillis)
 }
 
-fun offsetAnimatableState(
+fun offsetAnimateState(
     scope: CoroutineScope,
     initialValue: Offset = Offset.Zero,
     durationMillis: Int = DefaultDurationMillis
-): ChartOffsetAnimatableState {
-    return ChartOffsetAnimatableState(scope, initialValue, durationMillis)
+): ChartOffsetAnimateState {
+    return ChartOffsetAnimateState(scope, initialValue, durationMillis)
+}
+
+fun dpAnimateState(
+    scope: CoroutineScope,
+    initialValue: Dp = 0.dp,
+    durationMillis: Int = DefaultDurationMillis
+): ChartDpAnimateState {
+    return ChartDpAnimateState(scope, initialValue, durationMillis)
+}
+
+fun dpOffsetAnimateState(
+    scope: CoroutineScope,
+    initialValue: DpOffset = DpOffset.Zero,
+    durationMillis: Int = DefaultDurationMillis
+): ChartDpOffsetAnimateState {
+    return ChartDpOffsetAnimateState(scope, initialValue, durationMillis)
+}
+
+fun spAnimateState(
+    scope: CoroutineScope,
+    initialValue: TextUnit = 0.sp,
+    durationMillis: Int = DefaultDurationMillis
+): ChartSpAnimateState {
+    return ChartSpAnimateState(scope, initialValue, durationMillis)
 }
 
 /**
- * [ChartAnimatableState] is a wrapper for Animatable
+ * [ChartAnimateState] is a wrapper for Animatable
  * We can use it in non-composable function.
- * Besides, whenever we reset the [ChartAnimatableState] by invoking the [ChartAnimatableState.reset]
+ * Besides, whenever we reset the [ChartAnimateState] by invoking the [ChartAnimateState.reset]
  * It will be safe to use to reuse.
  *
  * We use [isResetting] is because the [Animatable.snapTo] can not respond in time due to coroutine.
  * This means we will discard some of the target value while resetting.
  */
-open class ChartAnimatableState<T, V : AnimationVector>(
+open class ChartAnimateState<T, V : AnimationVector>(
     private val scope: CoroutineScope,
     private val durationMillis: Int = DefaultDurationMillis,
     private var initialValue: T,
@@ -133,11 +163,11 @@ open class ChartAnimatableState<T, V : AnimationVector>(
     }
 }
 
-class ChartFloatAnimatableState(
+class ChartFloatAnimateState(
     scope: CoroutineScope,
     initialValue: Float = 0F,
     durationMillis: Int = DefaultDurationMillis,
-) : ChartAnimatableState<Float, AnimationVector1D>(scope, durationMillis, initialValue, Float.VectorConverter) {
+) : ChartAnimateState<Float, AnimationVector1D>(scope, durationMillis, initialValue, Float.VectorConverter) {
     operator fun setValue(
         thisRef: Any?, property: KProperty<*>, value: Float
     ) {
@@ -151,11 +181,11 @@ class ChartFloatAnimatableState(
     }
 }
 
-class ChartColorAnimatableState(
+class ChartColorAnimateState(
     scope: CoroutineScope,
     initialValue: Color = Color.Transparent,
     durationMillis: Int = DefaultDurationMillis,
-) : ChartAnimatableState<Color, AnimationVector4D>(
+) : ChartAnimateState<Color, AnimationVector4D>(
     scope,
     durationMillis,
     initialValue,
@@ -175,59 +205,124 @@ class ChartColorAnimatableState(
 
 }
 
-class ChartIntAnimatableState(
+class ChartIntAnimateState(
     scope: CoroutineScope,
     initialValue: Int = 0,
     durationMillis: Int = DefaultDurationMillis
-) : ChartAnimatableState<Int, AnimationVector1D>(scope, durationMillis, initialValue, Int.VectorConverter) {
+) : ChartAnimateState<Int, AnimationVector1D>(scope, durationMillis, initialValue, Int.VectorConverter) {
 
-    operator fun ChartIntAnimatableState.setValue(
+    operator fun setValue(
         thisRef: Any?, property: KProperty<*>, value: Int
     ) {
         this.value = value
     }
 
-    operator fun ChartIntAnimatableState.getValue(
+    operator fun getValue(
         thisRef: Any?, property: KProperty<*>
     ): Int {
         return value
     }
 }
 
-class ChartSizeAnimatableState(
+class ChartSizeAnimateState(
     scope: CoroutineScope,
     initialValue: Size = Size.Zero,
     durationMillis: Int = DefaultDurationMillis
-) : ChartAnimatableState<Size, AnimationVector2D>(scope, durationMillis, initialValue, Size.VectorConverter) {
+) : ChartAnimateState<Size, AnimationVector2D>(scope, durationMillis, initialValue, Size.VectorConverter) {
 
-    operator fun ChartSizeAnimatableState.setValue(
+    operator fun setValue(
         thisRef: Any?, property: KProperty<*>, value: Size
     ) {
         this.value = value
     }
 
-    operator fun ChartSizeAnimatableState.getValue(
+    operator fun getValue(
         thisRef: Any?, property: KProperty<*>
     ): Size {
         return value
     }
 }
 
-class ChartOffsetAnimatableState(
+class ChartOffsetAnimateState(
     scope: CoroutineScope,
     initialValue: Offset = Offset.Zero,
     durationMillis: Int = DefaultDurationMillis
-) : ChartAnimatableState<Offset, AnimationVector2D>(scope, durationMillis, initialValue, Offset.VectorConverter) {
+) : ChartAnimateState<Offset, AnimationVector2D>(scope, durationMillis, initialValue, Offset.VectorConverter) {
 
-    operator fun ChartOffsetAnimatableState.setValue(
+    operator fun setValue(
         thisRef: Any?, property: KProperty<*>, value: Offset
     ) {
         this.value = value
     }
 
-    operator fun ChartOffsetAnimatableState.getValue(
+    operator fun getValue(
         thisRef: Any?, property: KProperty<*>
     ): Offset {
+        return value
+    }
+}
+
+class ChartDpAnimateState(
+    scope: CoroutineScope,
+    initialValue: Dp = 0.dp,
+    durationMillis: Int = DefaultDurationMillis
+) : ChartAnimateState<Dp, AnimationVector1D>(scope, durationMillis, initialValue, Dp.VectorConverter) {
+
+    operator fun setValue(
+        thisRef: Any?, property: KProperty<*>, value: Dp
+    ) {
+        this.value = value
+    }
+
+    operator fun getValue(
+        thisRef: Any?, property: KProperty<*>
+    ): Dp {
+        return value
+    }
+}
+
+class ChartDpOffsetAnimateState(
+    scope: CoroutineScope,
+    initialValue: DpOffset = DpOffset.Zero,
+    durationMillis: Int = DefaultDurationMillis
+) : ChartAnimateState<DpOffset, AnimationVector2D>(scope, durationMillis, initialValue, DpOffset.VectorConverter) {
+
+    operator fun setValue(
+        thisRef: Any?, property: KProperty<*>, value: DpOffset
+    ) {
+        this.value = value
+    }
+
+    operator fun getValue(
+        thisRef: Any?, property: KProperty<*>
+    ): DpOffset {
+        return value
+    }
+}
+
+/**
+ * A type converter that converts a [TextUnit] to a [AnimationVector1D], and vice versa.
+ */
+private val SpToVector: TwoWayConverter<TextUnit, AnimationVector1D> = TwoWayConverter(
+    convertToVector = { AnimationVector1D(it.value) },
+    convertFromVector = { TextUnit(it.value, TextUnitType.Sp) }
+)
+
+class ChartSpAnimateState(
+    scope: CoroutineScope,
+    initialValue: TextUnit = 0.sp,
+    durationMillis: Int = DefaultDurationMillis
+) : ChartAnimateState<TextUnit, AnimationVector1D>(scope, durationMillis, initialValue, SpToVector) {
+
+    operator fun setValue(
+        thisRef: Any?, property: KProperty<*>, value: TextUnit
+    ) {
+        this.value = value
+    }
+
+    operator fun getValue(
+        thisRef: Any?, property: KProperty<*>
+    ): TextUnit {
         return value
     }
 }

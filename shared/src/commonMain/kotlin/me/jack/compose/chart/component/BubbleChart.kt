@@ -101,17 +101,17 @@ fun SingleChartScope<BubbleData>.BubbleMarkerComponent() {
                 height = 2 * drawElement.radius
             )
         )
-        MarkerComponent(
+        RectMarkerComponent(
             topLeft = Offset(
                 x = drawElement.center.x - drawElement.radius,
                 y = drawElement.center.y - drawElement.radius
             ),
-            contentSize = Size(
+            size = Size(
                 width = 2 * drawElement.radius,
                 height = 2 * drawElement.radius
             ),
             focusPoint = drawElement.focusPoint,
-            displayInfo = "(" + currentItem.value.toString() + ")"
+            displayInfo = "(" + "${currentItem.value},${currentItem.volume}" + ")"
         )
     }
 }
@@ -126,18 +126,16 @@ fun BubbleChartScope.BubbleComponent(
     LazyChartCanvas(
         modifier = Modifier.fillMaxSize()
     ) { current ->
-        val bubbleItemSize = size.height / maxValue
-        clickableWithInteraction {
+        val bubbleItemSize = size.crossAxis / maxValue
+        animatableWithInteraction {
             drawCircle(
-                //                color = current.color whenPressed current.color.copy(alpha = 0.8f),
-                color = current.color,
-                //                radius = (current.volume * volumeSize) whenPressedAnimateTo (current.volume * volumeSize * 1.2f),
-                radius = (current.volume * volumeSize),
+                color = current.color whenPressed current.color.copy(alpha = 0.8f),
+                radius = (current.volume * volumeSize) whenPressedAnimateTo (current.volume * volumeSize * 1.2f),
                 center = if (isHorizontal) Offset(
                     x = childCenterOffset.x,
-                    y = size.crossAxis - current.value * bubbleItemSize
+                    y = size.height - current.value * bubbleItemSize
                 ) else Offset(
-                    x = size.crossAxis - current.value * bubbleItemSize,
+                    x = current.value * bubbleItemSize,
                     y = childCenterOffset.y
                 )
             )

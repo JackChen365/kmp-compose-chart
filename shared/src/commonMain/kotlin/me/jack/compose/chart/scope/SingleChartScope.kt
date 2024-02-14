@@ -268,6 +268,10 @@ fun ChartDatasetAccessScope.isFirstIndex(): Boolean {
     return index == firstVisibleItem
 }
 
+fun ChartDatasetAccessScope.isFirstGroupAndFirstIndex(): Boolean {
+    return index == firstVisibleItem && groupIndex == 0
+}
+
 fun ChartDatasetAccessScope.isLastIndex(): Boolean {
     return index == lastVisibleItem
 }

@@ -15,4 +15,3 @@ class SimpleBubbleData(
     override val volume: Float,
     override val color: Color
 ) : BubbleData
-

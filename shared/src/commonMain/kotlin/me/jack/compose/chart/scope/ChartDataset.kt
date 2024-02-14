@@ -12,15 +12,14 @@ import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.graphics.Color
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import me.jack.compose.chart.animation.ChartAnimatableState
-import me.jack.compose.chart.animation.ChartColorAnimatableState
-import me.jack.compose.chart.animation.ChartFloatAnimatableState
-import me.jack.compose.chart.animation.ChartIntAnimatableState
-import me.jack.compose.chart.animation.colorAnimatableState
-import me.jack.compose.chart.animation.floatAnimatableState
-import me.jack.compose.chart.animation.intAnimatableState
+import me.jack.compose.chart.animation.ChartAnimateState
+import me.jack.compose.chart.animation.ChartColorAnimateState
+import me.jack.compose.chart.animation.ChartFloatAnimateState
+import me.jack.compose.chart.animation.ChartIntAnimateState
+import me.jack.compose.chart.animation.colorAnimateState
+import me.jack.compose.chart.animation.floatAnimateState
+import me.jack.compose.chart.animation.intAnimateState
 import java.lang.reflect.InvocationHandler
 import java.lang.reflect.Method
 import java.lang.reflect.Proxy
@@ -66,7 +65,7 @@ inline fun <T> ChartDataset<T>.rememberMaxValue(
         mutableFloatStateOf(1f)
     }
     LaunchedEffect(groupSize, size) {
-        launch(Dispatchers.IO) {
+        launch {
             maxValue = maxOf(block = maxValueEvaluator)
         }
     }
@@ -82,7 +81,7 @@ inline fun <T> ChartDataset<T>.rememberMinValue(
         mutableFloatStateOf(1f)
     }
     LaunchedEffect(groupSize, size) {
-        launch(Dispatchers.IO) {
+        launch {
             minValue = minOf(block = minValueEvaluator)
         }
     }
@@ -98,7 +97,7 @@ inline fun <T> ChartDataset<T>.rememberSumValue(
         mutableFloatStateOf(1f)
     }
     LaunchedEffect(groupSize, size) {
-        launch(Dispatchers.IO) {
+        launch {
             sumValue = sumOf(block = sumValueEvaluator)
         }
     }
@@ -130,7 +129,7 @@ class ChartDataGroupBuilder<T> {
     @Suppress("UNCHECKED_CAST")
     private fun getAnimatableDelegateItem(scope: CoroutineScope, item: T): T {
         val itemClass = item!!::class.java
-        val itemAnimatableFields = mutableMapOf<String, ChartAnimatableState<*, *>>()
+        val itemAnimatableFields = mutableMapOf<String, ChartAnimateState<*, *>>()
         return Proxy.newProxyInstance(itemClass.classLoader, itemClass.interfaces, object : InvocationHandler {
             override fun invoke(proxy: Any?, method: Method, args: Array<out Any>?): Any? {
                 val propertyName = resolvePropertyName(method.name)
@@ -154,17 +153,17 @@ class ChartDataGroupBuilder<T> {
                 }
             }
 
-            private fun setAnimatableFieldValue(animatableState: ChartAnimatableState<*, *>, value: Any) {
+            private fun setAnimatableFieldValue(animatableState: ChartAnimateState<*, *>, value: Any) {
                 when (animatableState) {
-                    is ChartColorAnimatableState -> {
+                    is ChartColorAnimateState -> {
                         animatableState.value = value as Color
                     }
 
-                    is ChartIntAnimatableState -> {
+                    is ChartIntAnimateState -> {
                         animatableState.value = value as Int
                     }
 
-                    is ChartFloatAnimatableState -> {
+                    is ChartFloatAnimateState -> {
                         animatableState.value = value as Float
                     }
                 }
@@ -172,21 +171,21 @@ class ChartDataGroupBuilder<T> {
 
             private fun getPropertyAnimatableField(
                 item: T, propertyName: String, propertyType: Class<*>
-            ): ChartAnimatableState<*, *>? {
+            ): ChartAnimateState<*, *>? {
                 val key = propertyName + System.identityHashCode(item)
                 var animatableState = itemAnimatableFields[key]
                 if (null == animatableState) {
                     animatableState = when (propertyType) {
                         Color::class.java -> {
-                            colorAnimatableState(scope, readInstanceProperty(item as Any, propertyName))
+                            colorAnimateState(scope, readInstanceProperty(item as Any, propertyName))
                         }
 
                         Float::class.java -> {
-                            floatAnimatableState(scope, readInstanceProperty(item as Any, propertyName))
+                            floatAnimateState(scope, readInstanceProperty(item as Any, propertyName))
                         }
 
                         Int::class.java -> {
-                            intAnimatableState(scope, readInstanceProperty(item as Any, propertyName))
+                            intAnimateState(scope, readInstanceProperty(item as Any, propertyName))
                         }
 
                         else -> null

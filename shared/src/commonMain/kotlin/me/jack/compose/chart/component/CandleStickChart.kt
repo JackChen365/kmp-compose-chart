@@ -140,7 +140,7 @@ fun CandleStickChartScope.ChartCandleStickComponent(
     ) { candleData ->
         val candleBlockSize = size.height / highestValue
         // we calculate the lastVisibleItemIndex due to other places need it.
-        clickableRectWithInteraction(currentLeftTopOffset, childSize)
+        animatableRectRectWithInteraction(currentLeftTopOffset, childSize)
         drawRect(
             color = Color.Blue whenPressedAnimateTo Color.Blue.copy(alpha = 0.4f),
             topLeft = Offset(
@@ -179,9 +179,9 @@ fun CandleStickChartScope.ChartCandleDataMarkerComponent() {
             topLeft = drawElement.topLeft,
             contentSize = drawElement.size,
         )
-        MarkerComponent(
+        RectMarkerComponent(
             topLeft = drawElement.topLeft,
-            contentSize = drawElement.size,
+            size = drawElement.size,
             focusPoint = drawElement.focusPoint,
             displayInfo = "(" + currentItem.high + "-" + currentItem.low + ")" +
                     "(" + currentItem.open + "-" + currentItem.close + ")"

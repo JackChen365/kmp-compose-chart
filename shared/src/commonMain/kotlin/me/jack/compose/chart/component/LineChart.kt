@@ -159,9 +159,9 @@ fun LineChartScope.LineMarkerComponent() {
             topLeft = drawElement.topLeft,
             contentSize = drawElement.size
         )
-        MarkerComponent(
+        RectMarkerComponent(
             topLeft = drawElement.topLeft,
-            contentSize = drawElement.size,
+            size = drawElement.size,
             focusPoint = drawElement.focusPoint,
             displayInfo = "(" + currentGroupItems.joinToString { String.format("%.2f", it.value) } + ")"
         )
@@ -197,7 +197,7 @@ fun SingleChartScope<LineData>.ChartLineComponent(
             strokeWidth = lineSpec.strokeWidth.toPx()
         )
         if (isFirstIndex()) {
-            clickableRectWithInteraction(
+            animatableRectRectWithInteraction(
                 topLeft = currentLeftTopOffset,
                 size = childSize,
                 focusPoint = Offset(
@@ -214,7 +214,7 @@ fun SingleChartScope<LineData>.ChartLineComponent(
                 )
             )
         }
-        clickableRectWithInteraction(
+        animatableRectRectWithInteraction(
             topLeft = nextLeftTopOffset,
             size = childSize,
             focusPoint = Offset(
@@ -337,7 +337,7 @@ private fun SingleChartScope<LineData>.HorizontalCurveLine(
                 y3 = nextOffset.y,
             )
             // add clickable rect
-            clickableRectWithInteraction(
+            animatableRectRectWithInteraction(
                 topLeft = currentLeftTopOffset,
                 size = Size(width = childSize.width, size.height),
                 focusPoint = currentOffset
@@ -348,7 +348,7 @@ private fun SingleChartScope<LineData>.HorizontalCurveLine(
                 center = currentOffset
             )
             if (index + 1 == range.last) {
-                clickableRectWithInteraction(
+                animatableRectRectWithInteraction(
                     topLeft = nextLeftTopOffset,
                     size = Size(width = childSize.width, size.height),
                     focusPoint = nextChildCenterOffset.copy(y = nextOffset.y)

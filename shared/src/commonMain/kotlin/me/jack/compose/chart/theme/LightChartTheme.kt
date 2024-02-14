@@ -20,11 +20,13 @@ import me.jack.compose.chart.component.DarkIndicationSpec
 import me.jack.compose.chart.component.DarkLineSpec
 import me.jack.compose.chart.component.DarkMarkerSpec
 import me.jack.compose.chart.component.DonutSpec
+import me.jack.compose.chart.component.DonutTextSpec
 import me.jack.compose.chart.component.GridDividerSpec
 import me.jack.compose.chart.component.IndicationSpec
 import me.jack.compose.chart.component.LineSpec
 import me.jack.compose.chart.component.MarkerSpec
 import me.jack.compose.chart.component.PieSpec
+import me.jack.compose.chart.component.PieTextSpec
 
 @Composable
 fun ChartTheme(
@@ -54,13 +56,15 @@ open class LightChartTheme(
     val candleStickBarSpec: CandleStickBarSpec = CandleStickBarSpec(),
     val candleStickSpec: CandleStickSpec = CandleStickSpec(),
     val curveLineSpec: CurveLineSpec = CurveLineSpec(),
-    val donutSpec: DonutSpec = DonutSpec(),
     val gridDividerSpec: GridDividerSpec = GridDividerSpec(),
     val indicationSpec: IndicationSpec = IndicationSpec(),
     val averageAcrossRanksSpec: AverageAcrossRanksSpec = AverageAcrossRanksSpec(),
     val lineSpec: LineSpec = LineSpec(),
     val markerSpec: MarkerSpec = MarkerSpec(),
-    val pieSpec: PieSpec = PieSpec()
+    val donutSpec: DonutSpec = DonutSpec(),
+    val donutTextSpec: DonutTextSpec = DonutTextSpec(),
+    val pieSpec: PieSpec = PieSpec(),
+    val pieTextSpec: PieTextSpec = PieTextSpec()
 )
 
 class DarkChartTheme(
@@ -76,7 +80,8 @@ class DarkChartTheme(
     curveLineSpec: CurveLineSpec = CurveLineSpec(),
     donutSpec: DonutSpec = DonutSpec(),
     lineSpec: LineSpec = DarkLineSpec(),
-    pieSpec: PieSpec = PieSpec()
+    pieSpec: PieSpec = PieSpec(),
+    pieTextSpec: PieTextSpec = PieTextSpec()
 ) : LightChartTheme(
     borderSpec = borderSpec,
     candleStickLeftSideSpec = candleStickLeftSideLabelSpec,
@@ -90,5 +95,6 @@ class DarkChartTheme(
     curveLineSpec = curveLineSpec,
     donutSpec = donutSpec,
     lineSpec = lineSpec,
-    pieSpec = pieSpec
+    pieSpec = pieSpec,
+    pieTextSpec = pieTextSpec
 )

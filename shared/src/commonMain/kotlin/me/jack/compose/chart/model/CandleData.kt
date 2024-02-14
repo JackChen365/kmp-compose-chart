@@ -13,5 +13,3 @@ class SimpleCandleData(
     override val open: Float,
     override val close: Float
 ) : CandleData
-
-

@@ -24,6 +24,7 @@ import me.jack.compose.chart.component.DonutChart
 import me.jack.compose.chart.component.DonutData
 import me.jack.compose.chart.component.SimpleDonutData
 import me.jack.compose.chart.component.rememberCombinedTapGestures
+import me.jack.compose.chart.debug.DebugDonutComponent
 import me.jack.compose.chart.scope.ChartDataset
 import me.jack.compose.chart.scope.SINGLE_GROUP_NAME
 import me.jack.compose.chart.scope.rememberChartDataGroup
@@ -69,8 +70,7 @@ class DonutDemos {
         Box {
             Column {
                 DonutChart(
-                    modifier = Modifier
-                        .height(240.dp),
+                    modifier = Modifier.height(240.dp),
                     chartDataset = buildChartDataset(),
                     tapGestures = rememberCombinedTapGestures(
                         onTap = {
@@ -86,7 +86,10 @@ class DonutDemos {
                             snackBarVisible = true
                         }
                     )
-                )
+                ){
+                    ChartContent()
+                    DebugDonutComponent()
+                }
                 Spacer(modifier = Modifier.height(8.dp))
                 DonutChart(
                     modifier = Modifier

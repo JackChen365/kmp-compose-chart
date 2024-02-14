@@ -34,7 +34,7 @@ import me.jack.compose.chart.component.CandleStickScrollableBarComponent
 import me.jack.compose.chart.component.ChartBorderComponent
 import me.jack.compose.chart.component.ChartIndicatorComponent
 import me.jack.compose.chart.component.IndicationSpec
-import me.jack.compose.chart.component.TapGestures
+import me.jack.compose.chart.component.rememberOnTap
 import me.jack.compose.chart.context.ChartScrollableState
 import me.jack.compose.chart.context.rememberScrollableState
 import me.jack.compose.chart.model.CandleData
@@ -85,8 +85,7 @@ class CandleStickDemos {
                 candleStickSize = 20.dp,
                 chartDataset = chartDataset,
                 scrollableState = scrollableState,
-                tapGestures = TapGestures<CandleData>().onTap {
-                }
+                tapGestures = rememberOnTap {  }
             ) {
                 CandleStickLeftSideLabel()
                 ChartBorderComponent()
@@ -138,7 +137,7 @@ class CandleStickDemos {
                 modifier = Modifier.requiredHeight(320.dp),
                 candleStickSize = 24.dp,
                 chartDataset = chartDataset,
-                tapGestures = TapGestures<CandleData>().onTap {
+                tapGestures = rememberOnTap {
                 }
             ) {
                 CandleStickLeftSideLabel()
@@ -184,7 +183,7 @@ class CandleStickDemos {
                 candleStickSize = 24.dp,
                 chartDataset = chartDataset,
                 scrollableState = scrollableState,
-                tapGestures = TapGestures<CandleData>().onTap {
+                tapGestures = rememberOnTap {
                     tapCount++
                 }
             )
@@ -295,9 +294,7 @@ class CandleStickDemos {
             CandleStickChart(modifier = Modifier.requiredHeight(240.dp),
                 candleStickSize = 24.dp,
                 chartDataset = chartDataset,
-                scrollableState = scrollableState,
-                tapGestures = TapGestures<CandleData>().onTap {
-                }
+                scrollableState = scrollableState
             ) {
                 if (isAutoScroll) {
                     LaunchAutoScrollJob(chartDataset, scrollableState)
@@ -363,7 +360,7 @@ class CandleStickDemos {
             LaunchStockJob(
                 chartDataset = chartDataset,
                 scrollableState = scrollableState,
-                internal = 10L,
+                internal = 100L,
                 animateScrollToItem = true
             )
         }
@@ -371,9 +368,7 @@ class CandleStickDemos {
             CandleStickChart(modifier = Modifier.requiredHeight(360.dp),
                 candleStickSize = 20.dp,
                 chartDataset = chartDataset,
-                scrollableState = scrollableState,
-                tapGestures = TapGestures<CandleData>().onTap {
-                }
+                scrollableState = scrollableState
             ) {
                 CandleStickLeftSideLabel()
                 ChartBorderComponent()

@@ -30,6 +30,7 @@ import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.style.TextAlign
@@ -42,14 +43,14 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.round
 import androidx.compose.ui.unit.sp
-import me.jack.compose.chart.context.pressState
 import me.jack.compose.chart.draw.ChartCanvas
 import me.jack.compose.chart.draw.DrawElement
-import me.jack.compose.chart.draw.interaction.hoverState
+import me.jack.compose.chart.draw.isHoveredOrPressed
 import me.jack.compose.chart.scope.ChartScope
 import me.jack.compose.chart.scope.SingleChartScope
 import me.jack.compose.chart.scope.isHorizontal
 import me.jack.compose.chart.theme.LocalChartTheme
+import me.jack.compose.chart.util.convertAngleToCoordinates
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
@@ -82,15 +83,15 @@ class DarkMarkerSpec(
 )
 
 @Composable
-fun ChartScope.MarkerComponent(
+fun ChartScope.RectMarkerComponent(
     spec: MarkerSpec = LocalChartTheme.current.markerSpec,
     topLeft: Offset,
-    contentSize: Size,
+    size: Size,
     displayInfo: String,
     focusPoint: Offset = Offset.Unspecified
 ) {
-    if (!chartContext.hoverState.value && !chartContext.pressState.value) return
-    val contentSizeState by animateSizeAsState(contentSize)
+    if (!isHoveredOrPressed()) return
+    val contentSizeState by animateSizeAsState(size)
     val topLeftState by animateOffsetAsState(topLeft)
     val focusPointState by animateOffsetAsState(focusPoint)
     val tooltipWidth = spec.tooltipSize.width.toPx()
@@ -116,7 +117,7 @@ fun ChartScope.MarkerComponent(
         )
     } else {
         offset = IntOffset(
-            x = (topLeftState.x + contentSizeState.width + spec.tooltipTickSize.toPx())
+            x = focusPointState.x
                 .coerceIn(0f, this.contentSize.width - tooltipContentSize.width)
                 .toInt(),
             y = (topLeftState.y - tooltipContentSize.height / 2 + contentSizeState.height / 2)
@@ -304,7 +305,7 @@ fun SingleChartScope<*>.MarkerDashLineComponent(
         val strokeWidthPx = spec.strokeWidth.toPx()
         val hypotenuse = sqrt(size.height * size.height + size.width * size.width)
         val stepsCount = (hypotenuse / stepPx).roundToInt()
-        clickableRect(topLeftState, contentSizeState)
+        animatableRect(topLeftState, contentSizeState)
         val lineColor = Color.Transparent whenPressedAnimateTo spec.color
         rotate(spec.angle, pivot = Offset.Zero) {
             for (i in 0..stepsCount) {
@@ -365,12 +366,71 @@ fun SingleChartScope<*>.HoverMarkerComponent(
     ChartCanvas(
         Modifier.fillMaxSize()
     ) {
-        clickable {
+        animatable {
             drawRect(
                 color = Color.Transparent whenPressedAnimateTo color,
                 topLeft = topLeft,
                 size = contentSize
             )
         }
+    }
+}
+
+@Composable
+fun SingleChartScope<*>.ArcMarkerComponent(
+    spec: MarkerSpec = LocalChartTheme.current.markerSpec,
+    drawElement: DrawElement.Arc,
+    displayInfo: String
+) {
+    if (!isHoveredOrPressed()) return
+    val shape = remember {
+        TooltipShape(
+            cornerRadius = spec.tooltipCornerRadius,
+            alignment = TooltipAlignment.Bottom,
+            tickSize = spec.tooltipTickSize
+        )
+    }
+    val center = Offset(
+        x = drawElement.topLeft.x + drawElement.size.width / 2,
+        y = drawElement.topLeft.y + drawElement.size.height / 2
+    )
+    val angle = drawElement.startAngle + drawElement.sweepAngle / 2 + 90
+    val offset = convertAngleToCoordinates(
+        center = center,
+        angle = drawElement.startAngle + drawElement.sweepAngle / 2,
+        radius = drawElement.size.minDimension / 2 + drawElement.strokeWidth / 2
+    )
+    val arrowOffset = Offset(
+        x = offset.x - spec.tooltipSize.width.toPx() / 2,
+        y = offset.y - spec.tooltipSize.height.toPx() - spec.tooltipTickSize.toPx()
+    )
+    val arrowOffsetState by animateOffsetAsState(arrowOffset)
+    Card(
+        modifier = Modifier
+            .width(spec.tooltipSize.width)
+            .height(spec.tooltipSize.height + spec.tooltipTickSize)
+            .offset { arrowOffsetState.round() }
+            .graphicsLayer(
+                transformOrigin = TransformOrigin(
+                    pivotFractionX = 0.5f,
+                    pivotFractionY = 1f,
+                ),
+                rotationZ = angle,
+            )
+            .shadow(elevation = spec.borderElevation, shape = shape),
+        shape = shape,
+        border = BorderStroke(
+            width = spec.borderSize,
+            color = spec.borderColor
+        )
+    ) {
+        Text(
+            modifier = Modifier
+                .fillMaxSize()
+                .wrapContentHeight(align = Alignment.CenterVertically),
+            textAlign = TextAlign.Center,
+            text = displayInfo,
+            fontSize = spec.tooltipTextSize
+        )
     }
 }

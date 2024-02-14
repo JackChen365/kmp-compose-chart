@@ -9,9 +9,11 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.DrawStyle
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpOffset
 import me.jack.compose.chart.draw.cache.DrawingKeyframeCache
 
-class UpdateDrawingElementDrawScope<T>(
+class ChartTraceableDrawScope<T>(
     private val drawScope: ChartDrawScope<T>,
     private val drawingElementCache: DrawingKeyframeCache
 ) : DrawScope by drawScope {
@@ -53,6 +55,14 @@ class UpdateDrawingElementDrawScope<T>(
     }
 
     infix fun Size.whenPressedAnimateTo(targetValue: Size): Size {
+        return with(drawScope) { whenPressedAnimateTo(targetValue) }
+    }
+
+    infix fun Dp.whenPressedAnimateTo(targetValue: Dp): Dp {
+        return with(drawScope) { whenPressedAnimateTo(targetValue) }
+    }
+
+    infix fun DpOffset.whenPressedAnimateTo(targetValue: DpOffset): DpOffset {
         return with(drawScope) { whenPressedAnimateTo(targetValue) }
     }
 

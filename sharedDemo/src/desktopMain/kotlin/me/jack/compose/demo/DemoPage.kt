@@ -63,7 +63,7 @@ fun DesktopAppDemo(
                 mutableStateOf(first)
             }
             NavigationRail(
-                modifier = Modifier.fillMaxHeight()
+                modifier = Modifier.fillMaxHeight().verticalScroll(state = rememberScrollState())
             ) {
                 val density = LocalDensity.current
                 val chartIcons = remember {

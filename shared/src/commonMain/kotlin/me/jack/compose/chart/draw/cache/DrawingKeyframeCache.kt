@@ -1,8 +1,8 @@
 package me.jack.compose.chart.draw.cache
 
-import me.jack.compose.chart.animation.ChartAnimatableState
+import me.jack.compose.chart.animation.ChartAnimateState
 
-internal inline fun <reified T : ChartAnimatableState<*, *>> DrawingKeyframeCache.getCachedValueOrPut(
+internal inline fun <reified T : ChartAnimateState<*, *>> DrawingKeyframeCache.getCachedValueOrPut(
     noinline onHitCache: (T) -> Unit,
     noinline defaultValue: (key: Class<*>) -> T
 ): T {

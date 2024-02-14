@@ -10,7 +10,6 @@ import androidx.compose.ui.unit.sp
 import me.jack.compose.chart.component.BorderSpec
 import me.jack.compose.chart.component.CandleStickBarComponent
 import me.jack.compose.chart.component.CandleStickLeftSideLabel
-import me.jack.compose.chart.component.ChartAverageAcrossRanksComponent
 import me.jack.compose.chart.component.ChartBorderComponent
 import me.jack.compose.chart.component.ChartGridDividerComponent
 import me.jack.compose.chart.component.ChartIndicatorComponent
@@ -169,7 +168,6 @@ class CombinedChartDemos {
                     spec = IndicationSpec(textSize = 8.sp)
                 )
                 CandleStickBarComponent()
-                ChartAverageAcrossRanksComponent { it.high }
                 CandleStickLeftSideLabel()
             }
         }
