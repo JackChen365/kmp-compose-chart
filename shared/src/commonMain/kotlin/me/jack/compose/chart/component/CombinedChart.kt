@@ -140,11 +140,11 @@ fun CombinedChart(
     val componentScope = ChartComponentScope()
     componentContent.invoke(componentScope)
     @Suppress("UNCHECKED_CAST")
-    (CombinedChartLayout(
+    CombinedChartLayout(
         modifier = modifier,
         chartContext = chartContext,
         contentMeasurePolicy = contentMeasurePolicy,
         chartComponents = componentScope.chartComponents as List<ChartComponent<Any>>,
         content = content
-    ))
+    )
 }

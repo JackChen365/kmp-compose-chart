@@ -76,23 +76,21 @@ private fun PieChartScope.PieComponent(
         }
         val arcSize = Size(size.minDimension, size.minDimension)
         val sweepAngle = pieData.value / degreesValue
-        animatableWithInteraction {
-            drawArc(
-                color = pieData.color whenPressedAnimateTo pieData.color.copy(alpha = spec.pressedAlpha),
-                startAngle = angleOffset,
-                sweepAngle = sweepAngle,
-                useCenter = true,
-                topLeft = Offset(
-                    x = (size.width - size.minDimension) / 2,
-                    y = (size.height - size.minDimension) / 2
-                ) whenPressedAnimateTo Offset(
-                    x = (size.width - size.minDimension * spec.pressedScale) / 2,
-                    y = (size.height - size.minDimension * spec.pressedScale) / 2
-                ),
-                size = arcSize whenPressedAnimateTo arcSize.times(spec.pressedScale),
-                style = Fill
-            )
-        }
+        drawArc(
+            color = pieData.color whenPressedAnimateTo pieData.color.copy(alpha = spec.pressedAlpha),
+            startAngle = angleOffset,
+            sweepAngle = sweepAngle,
+            useCenter = true,
+            topLeft = Offset(
+                x = (size.width - size.minDimension) / 2,
+                y = (size.height - size.minDimension) / 2
+            ) whenPressedAnimateTo Offset(
+                x = (size.width - size.minDimension * spec.pressedScale) / 2,
+                y = (size.height - size.minDimension * spec.pressedScale) / 2
+            ),
+            size = arcSize whenPressedAnimateTo arcSize.times(spec.pressedScale),
+            style = Fill
+        )
         angleOffset += sweepAngle
     }
 }
@@ -133,15 +131,6 @@ fun PieChartScope.PieTextComponent(
         val sweepAngle = current.value / degreesValue
         val angle = startAngle + sweepAngle / 2
         val radius = size.minDimension / 2
-        animatableArc(
-            topLeft = Offset(
-                x = (size.width - size.minDimension) / 2,
-                y = (size.height - size.minDimension) / 2
-            ),
-            size = Size(size.minDimension, size.minDimension),
-            startAngle = startAngle,
-            sweepAngle = sweepAngle
-        )
         val textLayoutResult = textMeasure.measure(
             text = current.value.toString(),
             style = TextStyle(

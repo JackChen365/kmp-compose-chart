@@ -39,7 +39,6 @@ import androidx.compose.ui.unit.sp
 import me.jack.compose.demo.builder.ComposableDemo
 import me.jack.compose.demo.builder.Demo
 import me.jack.compose.demo.builder.DemoCategory
-import me.jack.compose.demo.builder.DemoNavigator
 
 @Composable
 fun AppMainView(
@@ -68,6 +67,7 @@ fun DesktopAppDemo(
                 val density = LocalDensity.current
                 val chartIcons = remember {
                     mutableListOf(
+                        "palette.svg",
                         "bar_chart.svg",
                         "line_chart.svg",
                         "bubble_chart.svg",
@@ -168,8 +168,4 @@ private fun RootTopBar(title: String) {
         modifier = Modifier.shadow(4.dp),
         backgroundColor = MaterialTheme.colors.primary
     )
-}
-
-fun interface OnDemoItemClickListener {
-    fun onClick(navigator: DemoNavigator, demo: Demo)
 }

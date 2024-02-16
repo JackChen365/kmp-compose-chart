@@ -7,7 +7,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawStyle
@@ -198,14 +197,6 @@ fun SingleChartScope<LineData>.ChartLineComponent(
             strokeWidth = lineSpec.strokeWidth.toPx()
         )
         if (isFirstIndex()) {
-            animatableRectRectWithInteraction(
-                topLeft = currentLeftTopOffset,
-                size = childSize,
-                focusPoint = Offset(
-                    x = childCenterOffset.x,
-                    y = size.height - current.value * lineItemSize,
-                )
-            )
             drawCircle(
                 color = current.color whenPressedAnimateTo current.color.copy(alpha = lineSpec.pressAlpha),
                 radius = circleRadiusPx whenPressedAnimateTo circleRadiusPx * 1.4f,
@@ -215,14 +206,6 @@ fun SingleChartScope<LineData>.ChartLineComponent(
                 )
             )
         }
-        animatableRectRectWithInteraction(
-            topLeft = nextLeftTopOffset,
-            size = childSize,
-            focusPoint = Offset(
-                x = nextChildCenterOffset.x,
-                y = size.height - next.value * lineItemSize,
-            )
-        )
         drawCircle(
             color = current.color whenPressedAnimateTo next.color.copy(alpha = lineSpec.pressAlpha),
             radius = circleRadiusPx whenPressedAnimateTo circleRadiusPx * 1.4f,
@@ -339,22 +322,12 @@ private fun SingleChartScope<LineData>.HorizontalCurveLine(
                 y3 = nextOffset.y,
             )
             // add clickable rect
-            animatableRectRectWithInteraction(
-                topLeft = currentLeftTopOffset,
-                size = Size(width = childSize.width, size.height),
-                focusPoint = currentOffset
-            )
             drawCircle(
                 color = current.color whenPressedAnimateTo current.color.copy(alpha = spec.pressAlpha),
                 radius = 0f whenPressedAnimateTo spec.circleRadius.toPx(),
                 center = currentOffset
             )
             if (index + 1 == range.last) {
-                animatableRectRectWithInteraction(
-                    topLeft = nextLeftTopOffset,
-                    size = Size(width = childSize.width, size.height),
-                    focusPoint = nextChildCenterOffset.copy(y = nextOffset.y)
-                )
                 drawCircle(
                     color = next.color whenPressedAnimateTo next.color.copy(alpha = spec.pressAlpha),
                     radius = 0f whenPressedAnimateTo spec.circleRadius.toPx(),

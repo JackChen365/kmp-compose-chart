@@ -128,18 +128,16 @@ fun BubbleChartScope.BubbleComponent(
         modifier = Modifier.fillMaxSize()
     ) { current ->
         val bubbleItemSize = size.crossAxis / maxValue
-        animatableWithInteraction {
-            drawCircle(
-                color = current.color whenPressed current.color.copy(alpha = 0.8f),
-                radius = (current.volume * volumeSize) whenPressedAnimateTo (current.volume * volumeSize * 1.2f),
-                center = if (isHorizontal) Offset(
-                    x = childCenterOffset.x,
-                    y = size.height - current.value * bubbleItemSize
-                ) else Offset(
-                    x = current.value * bubbleItemSize,
-                    y = childCenterOffset.y
-                )
+        drawCircle(
+            color = current.color whenPressed current.color.copy(alpha = 0.8f),
+            radius = (current.volume * volumeSize) whenPressedAnimateTo (current.volume * volumeSize * 1.2f),
+            center = if (isHorizontal) Offset(
+                x = childCenterOffset.x,
+                y = size.height - current.value * bubbleItemSize
+            ) else Offset(
+                x = current.value * bubbleItemSize,
+                y = childCenterOffset.y
             )
-        }
+        )
     }
 }

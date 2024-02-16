@@ -7,12 +7,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.DrawStyle
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
@@ -88,23 +94,21 @@ fun DonutChartScope.DonutComponent(
             height = size.minDimension - strokeWidthPx
         )
         val sweepAngle = current.value / degreesValue
-        animatableWithInteraction {
-            drawArc(
-                color = current.color whenPressedAnimateTo current.color.copy(alpha = spec.pressedAlpha),
-                startAngle = angleOffset,
-                sweepAngle = sweepAngle,
-                useCenter = false,
-                topLeft = Offset(
-                    x = (size.width - arcSize.width) / 2,
-                    y = (size.height - arcSize.height) / 2
-                ) whenPressedAnimateTo Offset(
-                    x = (size.width - arcSize.width * spec.pressedScale) / 2,
-                    y = (size.height - arcSize.height * spec.pressedScale) / 2
-                ),
-                size = arcSize whenPressedAnimateTo arcSize.times(spec.pressedScale),
-                style = Stroke(strokeWidthPx)
-            )
-        }
+        drawArc(
+            color = current.color whenPressedAnimateTo current.color.copy(alpha = spec.pressedAlpha),
+            startAngle = angleOffset,
+            sweepAngle = sweepAngle,
+            useCenter = false,
+            topLeft = Offset(
+                x = (size.width - arcSize.width) / 2,
+                y = (size.height - arcSize.height) / 2
+            ) whenPressedAnimateTo Offset(
+                x = (size.width - arcSize.width * spec.pressedScale) / 2,
+                y = (size.height - arcSize.height * spec.pressedScale) / 2
+            ),
+            size = arcSize whenPressedAnimateTo arcSize.times(spec.pressedScale),
+            style = Stroke(strokeWidthPx)
+        )
         angleOffset += sweepAngle
     }
 }
@@ -149,16 +153,6 @@ fun PieChartScope.DonutTextComponent(
             width = size.minDimension - strokeWidthPx,
             height = size.minDimension - strokeWidthPx
         )
-        animatableArc(
-            topLeft = Offset(
-                x = (size.width - arcSize.width) / 2,
-                y = (size.height - arcSize.height) / 2
-            ),
-            size = arcSize,
-            startAngle = startAngle,
-            sweepAngle = sweepAngle,
-            strokeWidth = strokeWidthPx,
-        )
         val textLayoutResult = textMeasure.measure(
             text = current.value.toString(),
             style = TextStyle(
@@ -182,5 +176,18 @@ fun PieChartScope.DonutTextComponent(
             drawText(textLayoutResult, topLeft = textTopLeft)
         }
         startAngle += sweepAngle
+    }
+
+    fun drawText(
+        textLayoutResult: TextLayoutResult,
+        color: Color = Color.Unspecified,
+        topLeft: Offset = Offset.Zero,
+        alpha: Float = Float.NaN,
+        shadow: Shadow? = null,
+        textDecoration: TextDecoration? = null,
+        drawStyle: DrawStyle? = null,
+        blendMode: BlendMode = DrawScope.DefaultBlendMode
+    ) {
+
     }
 }

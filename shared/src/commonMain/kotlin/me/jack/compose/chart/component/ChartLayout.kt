@@ -514,6 +514,8 @@ internal suspend fun PointerInputScope.detectZoomGestures(
     }
 }
 
+
+
 @Composable
 fun <T> rememberCombinedTapGestures(
     onTap: (currentItem: T) -> Unit = {},

@@ -102,7 +102,7 @@ class ChartCombinedScope(
 
     inline fun <reified T> withSingleScope(block: SingleChartScope<T>.() -> Unit) {
         val singleChartScope = chartScopes.find {
-            CandleData::class.java.isAssignableFrom(it.chartDataset.datasetType)
+            T::class.java.isAssignableFrom(it.chartDataset.datasetType)
         }
         if (null != singleChartScope) {
             @Suppress("UNCHECKED_CAST")

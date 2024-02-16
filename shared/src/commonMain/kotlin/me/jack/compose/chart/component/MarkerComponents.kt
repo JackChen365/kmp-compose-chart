@@ -284,7 +284,7 @@ fun SingleChartScope<*>.MarkerDashLineComponent(
     topLeft: Offset,
     contentSize: Size
 ) {
-    if(!isHoveredOrPressed() || chartDataset.isEmpty) return
+    if (!isHoveredOrPressed() || chartDataset.isEmpty) return
     val pathEffect = remember {
         PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
     }
@@ -306,7 +306,6 @@ fun SingleChartScope<*>.MarkerDashLineComponent(
         val strokeWidthPx = spec.strokeWidth.toPx()
         val hypotenuse = sqrt(size.height * size.height + size.width * size.width)
         val stepsCount = (hypotenuse / stepPx).roundToInt()
-        animatableRect(topLeftState, contentSizeState)
         val lineColor = Color.Transparent whenPressedAnimateTo spec.color
         rotate(spec.angle, pivot = Offset.Zero) {
             for (i in 0..stepsCount) {
@@ -367,13 +366,11 @@ fun SingleChartScope<*>.HoverMarkerComponent(
     ChartCanvas(
         Modifier.fillMaxSize()
     ) {
-        animatable {
-            drawRect(
-                color = Color.Transparent whenPressedAnimateTo color,
-                topLeft = topLeft,
-                size = contentSize
-            )
-        }
+        drawRect(
+            color = Color.Transparent whenPressedAnimateTo color,
+            topLeft = topLeft,
+            size = contentSize
+        )
     }
 }
 

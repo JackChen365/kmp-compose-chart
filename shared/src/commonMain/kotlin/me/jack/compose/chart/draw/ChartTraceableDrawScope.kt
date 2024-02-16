@@ -100,7 +100,6 @@ class ChartTraceableDrawScope<T>(
         drawElement(
             onUpdateDrawElement = {
                 val rectDrawElement: DrawElement.Rect = obtainDrawElement()
-                rectDrawElement.color = color
                 rectDrawElement.topLeft = topLeft
                 rectDrawElement.size = size
                 currentDrawElement = rectDrawElement
@@ -145,7 +144,6 @@ class ChartTraceableDrawScope<T>(
         drawElement(
             onUpdateDrawElement = {
                 val circleDrawElement: DrawElement.Circle = obtainDrawElement()
-                circleDrawElement.color = color
                 circleDrawElement.radius = radius
                 circleDrawElement.center = center
                 currentDrawElement = circleDrawElement
@@ -189,11 +187,10 @@ class ChartTraceableDrawScope<T>(
     ) {
         drawElement(
             onUpdateDrawElement = {
-                val ovalDrawElement: DrawElement.Oval = obtainDrawElement()
-                ovalDrawElement.color = color
-                ovalDrawElement.topLeft = topLeft
-                ovalDrawElement.size = size
-                currentDrawElement = ovalDrawElement
+                val drawElement: DrawElement.Oval = obtainDrawElement()
+                drawElement.topLeft = topLeft
+                drawElement.size = size
+                currentDrawElement = drawElement
             },
             onDraw = {
                 drawScope.drawOval(color, topLeft, size, alpha, style, colorFilter, blendMode)
@@ -215,31 +212,21 @@ class ChartTraceableDrawScope<T>(
     ) {
         drawElement(
             onUpdateDrawElement = {
-                val arcDrawElement: DrawElement.Arc = obtainDrawElement()
-                arcDrawElement.color = color
-                arcDrawElement.startAngle = startAngle
-                arcDrawElement.startAngle = startAngle
-                arcDrawElement.topLeft = topLeft
-                arcDrawElement.size = size
-                arcDrawElement.sweepAngle = sweepAngle
+                val drawElement: DrawElement.Arc = obtainDrawElement()
+                drawElement.startAngle = startAngle
+                drawElement.startAngle = startAngle
+                drawElement.topLeft = topLeft
+                drawElement.size = size
+                drawElement.sweepAngle = sweepAngle
                 if (style is Stroke) {
-                    arcDrawElement.strokeWidth = style.width
+                    drawElement.strokeWidth = style.width
+                } else {
+                    drawElement.strokeWidth = 0f
                 }
-                currentDrawElement = arcDrawElement
+                currentDrawElement = drawElement
             },
             onDraw = {
-                drawScope.drawArc(
-                    color,
-                    startAngle,
-                    sweepAngle,
-                    useCenter,
-                    topLeft,
-                    size,
-                    alpha,
-                    style,
-                    colorFilter,
-                    blendMode
-                )
+                drawScope.drawArc(color, startAngle, sweepAngle, useCenter, topLeft, size, alpha, style, colorFilter, blendMode)
             }
         )
     }
@@ -258,29 +245,20 @@ class ChartTraceableDrawScope<T>(
     ) {
         drawElement(
             onUpdateDrawElement = {
-                val arcDrawElement: DrawElement.Arc = obtainDrawElement()
-                arcDrawElement.startAngle = startAngle
-                arcDrawElement.topLeft = topLeft
-                arcDrawElement.size = size
-                arcDrawElement.sweepAngle = sweepAngle
+                val drawElement: DrawElement.Arc = obtainDrawElement()
+                drawElement.startAngle = startAngle
+                drawElement.topLeft = topLeft
+                drawElement.size = size
+                drawElement.sweepAngle = sweepAngle
                 if (style is Stroke) {
-                    arcDrawElement.strokeWidth = style.width
+                    drawElement.strokeWidth = style.width
+                } else {
+                    drawElement.strokeWidth = 0f
                 }
-                currentDrawElement = arcDrawElement
+                currentDrawElement = drawElement
             },
             onDraw = {
-                drawScope.drawArc(
-                    brush,
-                    startAngle,
-                    sweepAngle,
-                    useCenter,
-                    topLeft,
-                    size,
-                    alpha,
-                    style,
-                    colorFilter,
-                    blendMode
-                )
+                drawScope.drawArc(brush, startAngle, sweepAngle, useCenter, topLeft, size, alpha, style, colorFilter, blendMode)
             }
         )
     }
@@ -306,6 +284,6 @@ class ChartTraceableDrawScope<T>(
     }
 
     private inline fun <reified T : DrawElement> obtainDrawElement(): T {
-        return drawingElementCache.getCachedDrawElement()
+        return drawingElementCache.getCachedDrawElement(key = T::class.java)
     }
 }

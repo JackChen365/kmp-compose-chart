@@ -8,6 +8,7 @@ import me.jack.compose.demo.CandleStickDemos
 import me.jack.compose.demo.ChartThemeDemos
 import me.jack.compose.demo.CombinedChartDemos
 import me.jack.compose.demo.DonutDemos
+import me.jack.compose.demo.DrawAnimationDemos
 import me.jack.compose.demo.LineDemos
 import me.jack.compose.demo.PieDemos
 
@@ -18,6 +19,7 @@ fun main() = application {
         onCloseRequest = ::exitApplication
     ) {
         AppMainView(
+            DrawAnimationDemos::class.java,
             BarDemos::class.java,
             LineDemos::class.java,
             BubbleDemos::class.java,
