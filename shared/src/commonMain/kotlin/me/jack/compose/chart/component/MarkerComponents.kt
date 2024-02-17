@@ -118,7 +118,7 @@ fun SingleChartScope<*>.RectMarkerComponent(
         )
     } else {
         offset = IntOffset(
-            x = focusPointState.x
+            x = (focusPointState.x + spec.tooltipTickSize.toPx())
                 .coerceIn(0f, this.contentSize.width - tooltipContentSize.width)
                 .toInt(),
             y = (topLeftState.y - tooltipContentSize.height / 2 + contentSizeState.height / 2)
