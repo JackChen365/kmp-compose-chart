@@ -91,7 +91,7 @@ fun SingleChartScope<*>.RectMarkerComponent(
     displayInfo: String,
     focusPoint: Offset = Offset.Unspecified
 ) {
-    if (!interactionStates.isHoveredOrPressed || isScrollInProgress || chartDataset.isEmpty) return
+    if (!shouldDisplayMarker()) return
     val contentSizeState by animateSizeAsState(size)
     val topLeftState by animateOffsetAsState(topLeft)
     val focusPointState by animateOffsetAsState(focusPoint)
@@ -278,7 +278,7 @@ class DarkMarkerDashLineSpec(
     step: Dp = 8.dp,
 ) : MarkerDashLineSpec(color, strokeWidth, angle, step)
 
-internal fun SingleChartScope<*>.shouldDisplayMarker(): Boolean {
+fun SingleChartScope<*>.shouldDisplayMarker(): Boolean {
     return interactionStates.isHoveredOrPressed && !isScrollInProgress && !chartDataset.isEmpty
 }
 
@@ -385,7 +385,7 @@ fun SingleChartScope<*>.ArcMarkerComponent(
     drawElement: DrawElement.Arc,
     displayInfo: String
 ) {
-    if (!interactionStates.isHoveredOrPressed || chartDataset.isEmpty) return
+    if (!shouldDisplayMarker()) return
     val shape = remember {
         TooltipShape(
             cornerRadius = spec.tooltipCornerRadius,
