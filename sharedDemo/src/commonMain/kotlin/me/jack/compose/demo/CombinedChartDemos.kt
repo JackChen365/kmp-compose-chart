@@ -1,6 +1,5 @@
 package me.jack.compose.demo
 
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -18,7 +17,6 @@ import me.jack.compose.chart.component.GridDividerSpec
 import me.jack.compose.chart.component.IndicationSpec
 import me.jack.compose.chart.component.toPx
 import me.jack.compose.chart.context.ChartContext
-import me.jack.compose.chart.context.chartInteraction
 import me.jack.compose.chart.context.scrollable
 import me.jack.compose.chart.measure.rememberFixedOverlayContentMeasurePolicy
 import me.jack.compose.chart.model.BarData
@@ -141,9 +139,7 @@ class CombinedChartDemos {
         val cancelStickDataset = buildCancelStickDataset()
         CombinedChart(
             modifier = Modifier.height(320.dp),
-            chartContext = ChartContext
-                .scrollable()
-                .chartInteraction(MutableInteractionSource()),
+            chartContext = ChartContext.scrollable(),
             contentMeasurePolicy = rememberFixedOverlayContentMeasurePolicy(fixedRowSize = 16.dp.toPx()),
             componentContent = {
                 candleStickChart(cancelStickDataset)

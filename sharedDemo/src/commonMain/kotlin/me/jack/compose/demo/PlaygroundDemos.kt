@@ -1,7 +1,6 @@
 package me.jack.compose.demo
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,7 +23,6 @@ import me.jack.compose.chart.component.ChartGridDividerComponent
 import me.jack.compose.chart.component.ChartIndicatorComponent
 import me.jack.compose.chart.component.toPx
 import me.jack.compose.chart.context.ChartContext
-import me.jack.compose.chart.context.chartInteraction
 import me.jack.compose.chart.context.scrollable
 import me.jack.compose.chart.measure.rememberFixedContentMeasurePolicy
 import me.jack.compose.chart.model.BarData
@@ -41,8 +39,7 @@ class PlaygroundDemos {
         }
         ChartEditLayout(
             chartContext = ChartContext
-                .scrollable()
-                .chartInteraction(MutableInteractionSource()),
+                .scrollable(),
             contentMeasurePolicy = rememberFixedContentMeasurePolicy(32.dp.toPx()),
             chartComponents = chartComponents,
             components = {

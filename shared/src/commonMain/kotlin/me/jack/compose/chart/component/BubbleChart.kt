@@ -10,7 +10,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import me.jack.compose.chart.context.ChartContext
 import me.jack.compose.chart.context.ChartScrollableState
-import me.jack.compose.chart.context.chartInteraction
 import me.jack.compose.chart.context.scrollable
 import me.jack.compose.chart.context.zoom
 import me.jack.compose.chart.draw.DrawElement
@@ -20,9 +19,9 @@ import me.jack.compose.chart.model.BubbleData
 import me.jack.compose.chart.scope.BubbleChartScope
 import me.jack.compose.chart.scope.ChartDataset
 import me.jack.compose.chart.scope.SingleChartScope
+import me.jack.compose.chart.scope.drawElementInteraction
 import me.jack.compose.chart.scope.isHorizontal
 import me.jack.compose.chart.scope.rememberMaxValue
-import me.jack.compose.chart.scope.withChartElementInteraction
 import me.jack.compose.chart.theme.LocalChartTheme
 
 class BubbleSpec(
@@ -67,7 +66,6 @@ fun BubbleChart(
 ) {
     val chartContext = remember {
         ChartContext
-            .chartInteraction()
             .scrollable(
                 orientation = contentMeasurePolicy.orientation
             )
@@ -89,31 +87,30 @@ fun BubbleChart(
 
 @Composable
 fun SingleChartScope<BubbleData>.BubbleMarkerComponent() {
-    withChartElementInteraction<BubbleData, DrawElement.Circle> { drawElement, currentItem, _ ->
-        MarkerDashLineComponent(
-            drawElement = drawElement,
-            topLeft = Offset(
-                x = drawElement.center.x - drawElement.radius,
-                y = drawElement.center.y - drawElement.radius
-            ),
-            contentSize = Size(
-                width = 2 * drawElement.radius,
-                height = 2 * drawElement.radius
-            )
+    val (drawElement, currentItem) = drawElementInteraction<BubbleData, DrawElement.Circle>() ?: return
+    MarkerDashLineComponent(
+        drawElement = drawElement,
+        topLeft = Offset(
+            x = drawElement.center.x - drawElement.radius,
+            y = drawElement.center.y - drawElement.radius
+        ),
+        contentSize = Size(
+            width = 2 * drawElement.radius,
+            height = 2 * drawElement.radius
         )
-        RectMarkerComponent(
-            topLeft = Offset(
-                x = drawElement.center.x - drawElement.radius,
-                y = drawElement.center.y - drawElement.radius
-            ),
-            size = Size(
-                width = 2 * drawElement.radius,
-                height = 2 * drawElement.radius
-            ),
-            focusPoint = drawElement.focusPoint,
-            displayInfo = "(" + "${currentItem.value},${currentItem.volume}" + ")"
-        )
-    }
+    )
+    RectMarkerComponent(
+        topLeft = Offset(
+            x = drawElement.center.x - drawElement.radius,
+            y = drawElement.center.y - drawElement.radius
+        ),
+        size = Size(
+            width = 2 * drawElement.radius,
+            height = 2 * drawElement.radius
+        ),
+        focusPoint = drawElement.focusPoint,
+        displayInfo = "(" + "${currentItem.value},${currentItem.volume}" + ")"
+    )
 }
 
 @Composable
@@ -128,16 +125,21 @@ fun BubbleChartScope.BubbleComponent(
         modifier = Modifier.fillMaxSize()
     ) { current ->
         val bubbleItemSize = size.crossAxis / maxValue
+        val center = if (isHorizontal) Offset(
+            x = childCenterOffset.x,
+            y = size.height - current.value * bubbleItemSize
+        ) else Offset(
+            x = current.value * bubbleItemSize,
+            y = childCenterOffset.y
+        )
+        interactionCircle(
+            center = center,
+            radius = (current.volume * volumeSize)
+        )
         drawCircle(
             color = current.color whenPressed current.color.copy(alpha = 0.8f),
             radius = (current.volume * volumeSize) whenPressedAnimateTo (current.volume * volumeSize * 1.2f),
-            center = if (isHorizontal) Offset(
-                x = childCenterOffset.x,
-                y = size.height - current.value * bubbleItemSize
-            ) else Offset(
-                x = current.value * bubbleItemSize,
-                y = childCenterOffset.y
-            )
+            center = center
         )
     }
 }

@@ -4,22 +4,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.input.pointer.PointerEventType
-import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.res.loadImageBitmap
 import androidx.compose.ui.res.useResource
 import androidx.compose.ui.text.TextStyle
@@ -31,31 +22,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.round
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.toSize
-import me.jack.compose.chart.component.toPx
 import me.jack.compose.chart.draw.AnimateCanvas
-import me.jack.compose.chart.util.isPointInLine
 
 class DrawAnimationDemos {
-    @OptIn(ExperimentalComposeUiApi::class)
     @Composable
     fun DrawElementDemo() {
-        var currentPosition by remember {
-            mutableStateOf(Offset.Zero)
-        }
         val image = useResource("swipe_down.png") { loadImageBitmap(it) }
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(400.dp)
+                .height(500.dp)
         ) {
             val textMeasurer = rememberTextMeasurer()
             AnimateCanvas(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .onPointerEvent(PointerEventType.Move) {
-                        val event = it.changes.first()
-                        currentPosition = event.position
-                    }
+                modifier = Modifier.fillMaxSize()
             ) {
                 drawCircle(
                     color = Color.Red whenPressedAnimateTo Color.Red.copy(0.4f),
@@ -203,20 +183,29 @@ class DrawAnimationDemos {
                     alpha = 1f whenPressedAnimateTo 0.2f,
                     colorFilter = ColorFilter.tint(color = Color.Red)
                 )
+
+//                drawRect(
+//                    color = Color.Red,
+//                    topLeft = Offset(20.dp.toPx(), 260.dp.toPx()),
+//                    size = Size(200.dp.toPx(), 200.dp.toPx()),
+//                    style = Stroke(1.dp.toPx())
+//                )
+//                clickableGroup(
+//                    topLeft = Offset(20.dp.toPx(), 260.dp.toPx()),
+//                    size = Size(200.dp.toPx(), 200.dp.toPx())
+//                ) {
+//                    drawCircle(
+//                        color = Color.Red whenPressedAnimateTo Color.Yellow,
+//                        center = Offset(80.dp.toPx(), 320.dp.toPx()),
+//                        radius = 40.dp.toPx()
+//                    )
+//                    drawCircle(
+//                        color = Color.Red whenPressedAnimateTo Color.Yellow,
+//                        center = Offset(160.dp.toPx(), 320.dp.toPx()),
+//                        radius = 40.dp.toPx()
+//                    )
+//                }
             }
-            Text(
-                modifier = Modifier.align(Alignment.BottomStart),
-                text = "CurrentPosition:$currentPosition " +
-                        "Start:${Offset(x = 360.dp.toPx(), y = 60.dp.toPx())}" +
-                        "End:${Offset(x = 520.dp.toPx(), y = 60.dp.toPx())}" +
-                        "${
-                            currentPosition.isPointInLine(
-                                start = Offset(x = 360.dp.toPx(), y = 60.dp.toPx()),
-                                end = Offset(x = 520.dp.toPx(), y = 60.dp.toPx()),
-                                strokeWidth = 20.dp.toPx()
-                            )
-                        }"
-            )
         }
     }
 }

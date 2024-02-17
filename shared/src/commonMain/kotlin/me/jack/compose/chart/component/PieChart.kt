@@ -1,9 +1,7 @@
 package me.jack.compose.chart.component
 
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -16,7 +14,6 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 import me.jack.compose.chart.context.ChartContext
-import me.jack.compose.chart.context.chartInteraction
 import me.jack.compose.chart.draw.DrawElement
 import me.jack.compose.chart.draw.LazyChartCanvas
 import me.jack.compose.chart.measure.rememberBoxChartContentMeasurePolicy
@@ -24,9 +21,9 @@ import me.jack.compose.chart.model.PieData
 import me.jack.compose.chart.scope.ChartDataset
 import me.jack.compose.chart.scope.PieChartScope
 import me.jack.compose.chart.scope.SingleChartScope
+import me.jack.compose.chart.scope.drawElementInteraction
 import me.jack.compose.chart.scope.isFirstGroupAndFirstIndex
 import me.jack.compose.chart.scope.rememberSumValue
-import me.jack.compose.chart.scope.withChartElementInteraction
 import me.jack.compose.chart.theme.LocalChartTheme
 import me.jack.compose.chart.util.convertAngleToCoordinates
 
@@ -43,12 +40,9 @@ fun PieChart(
     spec: PieSpec = LocalChartTheme.current.pieSpec,
     content: @Composable SingleChartScope<PieData>.() -> Unit = simpleChartContent
 ) {
-    val chartContext = remember {
-        ChartContext.chartInteraction(MutableInteractionSource())
-    }
     SingleChartLayout(
         modifier = modifier,
-        chartContext = chartContext,
+        chartContext = ChartContext,
         tapGestures = tapGestures,
         contentMeasurePolicy = rememberBoxChartContentMeasurePolicy(),
         chartDataset = chartDataset,
@@ -63,7 +57,7 @@ fun PieChart(
 @Composable
 private fun PieChartScope.PieComponent(
     modifier: Modifier = Modifier,
-    spec: PieSpec = LocalChartTheme.current.pieSpec,
+    spec: PieSpec = LocalChartTheme.current.pieSpec
 ) {
     val maxValue = chartDataset.rememberSumValue { it.value }
     val degreesValue = maxValue / 360f
@@ -76,6 +70,15 @@ private fun PieChartScope.PieComponent(
         }
         val arcSize = Size(size.minDimension, size.minDimension)
         val sweepAngle = pieData.value / degreesValue
+        interactionArc(
+            startAngle = angleOffset,
+            sweepAngle = sweepAngle,
+            topLeft = Offset(
+                x = (size.width - size.minDimension) / 2,
+                y = (size.height - size.minDimension) / 2
+            ),
+            size = arcSize whenPressedAnimateTo arcSize.times(spec.pressedScale)
+        )
         drawArc(
             color = pieData.color whenPressedAnimateTo pieData.color.copy(alpha = spec.pressedAlpha),
             startAngle = angleOffset,
@@ -97,14 +100,12 @@ private fun PieChartScope.PieComponent(
 
 @Composable
 fun PieChartScope.PieMarkerComponent() {
-    withChartElementInteraction<PieData, DrawElement.Arc> { drawElement, current, _ ->
-        ArcMarkerComponent(
-            drawElement = drawElement,
-            displayInfo = "(" + current.value.toString() + ")"
-        )
-    }
+    val (drawElement, current) = drawElementInteraction<PieData, DrawElement.Arc>() ?: return
+    ArcMarkerComponent(
+        drawElement = drawElement,
+        displayInfo = "(" + current.value.toString() + ")"
+    )
 }
-
 
 class PieTextSpec(
     val textColor: Color = Color.White,

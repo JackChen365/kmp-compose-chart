@@ -2,7 +2,6 @@ package me.jack.compose.demo
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
@@ -56,29 +55,29 @@ class DonutDemos {
                     ChartContent()
                     DebugDonutComponent()
                 }
-                Spacer(modifier = Modifier.height(8.dp))
-                DonutChart(
-                    modifier = Modifier
-                        .height(240.dp),
-                    chartDataset = buildDonutChartDataset(
-                        groupCount = 3,
-                        itemCount = 5
-                    ),
-                    tapGestures = rememberCombinedTapGestures(
-                        onTap = {
-                            currentHintText = "Tap item value:${it.value}"
-                            snackBarVisible = true
-                        },
-                        onDoubleTap = {
-                            currentHintText = "Double tap item value:${it.value}"
-                            snackBarVisible = true
-                        },
-                        onLongPress = {
-                            currentHintText = "Long Press item value:${it.value}"
-                            snackBarVisible = true
-                        }
-                    )
-                )
+//                Spacer(modifier = Modifier.height(8.dp))
+//                DonutChart(
+//                    modifier = Modifier
+//                        .height(240.dp),
+//                    chartDataset = buildDonutChartDataset(
+//                        groupCount = 3,
+//                        itemCount = 5
+//                    ),
+//                    tapGestures = rememberCombinedTapGestures(
+//                        onTap = {
+//                            currentHintText = "Tap item value:${it.value}"
+//                            snackBarVisible = true
+//                        },
+//                        onDoubleTap = {
+//                            currentHintText = "Double tap item value:${it.value}"
+//                            snackBarVisible = true
+//                        },
+//                        onLongPress = {
+//                            currentHintText = "Long Press item value:${it.value}"
+//                            snackBarVisible = true
+//                        }
+//                    )
+//                )
             }
             if (snackBarVisible) {
                 LaunchedEffect(Unit) {

@@ -18,6 +18,7 @@ import me.jack.compose.chart.component.DarkCandleStickLeftSideSpec
 import me.jack.compose.chart.component.DarkGridDividerSpec
 import me.jack.compose.chart.component.DarkIndicationSpec
 import me.jack.compose.chart.component.DarkLineSpec
+import me.jack.compose.chart.component.DarkMarkerDashLineSpec
 import me.jack.compose.chart.component.DarkMarkerSpec
 import me.jack.compose.chart.component.DonutSpec
 import me.jack.compose.chart.component.DonutTextSpec
@@ -25,6 +26,7 @@ import me.jack.compose.chart.component.EditDatasetSpec
 import me.jack.compose.chart.component.GridDividerSpec
 import me.jack.compose.chart.component.IndicationSpec
 import me.jack.compose.chart.component.LineSpec
+import me.jack.compose.chart.component.MarkerDashLineSpec
 import me.jack.compose.chart.component.MarkerSpec
 import me.jack.compose.chart.component.PieSpec
 import me.jack.compose.chart.component.PieTextSpec
@@ -61,6 +63,7 @@ open class LightChartTheme(
     val indicationSpec: IndicationSpec = IndicationSpec(),
     val averageAcrossRanksSpec: AverageAcrossRanksSpec = AverageAcrossRanksSpec(),
     val lineSpec: LineSpec = LineSpec(),
+    val markerDashLineSpec: MarkerDashLineSpec = MarkerDashLineSpec(),
     val markerSpec: MarkerSpec = MarkerSpec(),
     val donutSpec: DonutSpec = DonutSpec(),
     val donutTextSpec: DonutTextSpec = DonutTextSpec(),
@@ -76,6 +79,7 @@ class DarkChartTheme(
     gridDividerSpec: GridDividerSpec = DarkGridDividerSpec(),
     indicationSpec: IndicationSpec = DarkIndicationSpec(),
     averageAcrossRanksSpec: AverageAcrossRanksSpec = DarkAverageAcrossRanksSpec(),
+    markerDashLineSpec: MarkerDashLineSpec = DarkMarkerDashLineSpec(),
     markerSpec: MarkerSpec = DarkMarkerSpec(),
     bubbleSpec: BubbleSpec = BubbleSpec(),
     candleStickSpec: CandleStickSpec = CandleStickSpec(),
@@ -92,6 +96,7 @@ class DarkChartTheme(
     gridDividerSpec = gridDividerSpec,
     indicationSpec = indicationSpec,
     averageAcrossRanksSpec = averageAcrossRanksSpec,
+    markerDashLineSpec = markerDashLineSpec,
     markerSpec = markerSpec,
     bubbleSpec = bubbleSpec,
     candleStickSpec = candleStickSpec,

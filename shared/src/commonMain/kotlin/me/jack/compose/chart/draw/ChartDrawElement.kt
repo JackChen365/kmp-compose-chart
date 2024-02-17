@@ -6,17 +6,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.center
-import me.jack.compose.chart.context.ChartContext
-import me.jack.compose.chart.context.pressLocation
-import me.jack.compose.chart.context.pressState
-import me.jack.compose.chart.draw.interaction.doubleTapLocation
-import me.jack.compose.chart.draw.interaction.doubleTapState
-import me.jack.compose.chart.draw.interaction.hoverLocation
-import me.jack.compose.chart.draw.interaction.hoverState
-import me.jack.compose.chart.draw.interaction.longPressLocation
-import me.jack.compose.chart.draw.interaction.longPressTapState
-import me.jack.compose.chart.draw.interaction.tapLocation
-import me.jack.compose.chart.draw.interaction.tapState
 import me.jack.compose.chart.util.isPointInArc
 import me.jack.compose.chart.util.isPointInArcWithStrokeWidth
 import me.jack.compose.chart.util.isPointInCircle
@@ -32,6 +21,10 @@ sealed class DrawElement {
      * Active means there are drawing animate state cooperate with this element.
      */
     open var isActivated: Boolean = false
+
+    var isPressed: Boolean = false
+
+    var isHovered: Boolean = false
 
     open operator fun contains(location: Offset): Boolean = false
 
@@ -479,21 +472,105 @@ sealed class DrawElement {
             return "Path(bounds=$bounds, strokeWidth=$strokeWidth)"
         }
     }
+
+    @Stable
+    class DrawElementGroup : DrawElement() {
+        var topLeft: Offset = Offset.Zero
+        var size: Size = Size.Zero
+        var children: ResizableList<DrawElement> = ResizableList()
+
+        override operator fun contains(location: Offset): Boolean {
+            return location.isPointInRect(topLeft, size)
+        }
+
+        override fun copy(other: DrawElement): DrawElement {
+            if (other is DrawElementGroup) {
+                topLeft = other.topLeft
+                size = other.size
+                children = other.children
+            }
+            return this
+        }
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+
+            other as DrawElementGroup
+
+            if (topLeft != other.topLeft) return false
+            if (size != other.size) return false
+            return children == other.children
+        }
+
+        override fun hashCode(): Int {
+            var result = topLeft.hashCode()
+            result = 31 * result + size.hashCode()
+            result = 31 * result + children.hashCode()
+            return result
+        }
+
+        override fun toString(): String {
+            return "DrawElementGroup(topLeft=$topLeft, size=$size, children=$children)"
+        }
+    }
 }
 
-fun DrawElement.isHoveredOrPressed(chartContext: ChartContext): Boolean {
-    return chartContext.hoverState.value && chartContext.hoverLocation in this ||
-            chartContext.pressState.value && chartContext.pressLocation in this
+class ResizableList<T> : Iterable<T> {
+
+    private val list: MutableList<T> = mutableListOf()
+    private var pointer = 0
+
+    fun add(element: T) {
+        list.add(element)
+    }
+
+    fun remove(element: T): Boolean {
+        return list.remove(element)
+    }
+
+    operator fun get(index: Int): T {
+        return list[index]
+    }
+
+    fun set(index: Int, element: T) {
+        list[index] = element
+    }
+
+    fun size(): Int {
+        return list.size
+    }
+
+    fun isEmpty(): Boolean {
+        return list.isEmpty()
+    }
+
+    fun resetPointer() {
+        pointer = 0
+    }
+
+    override fun iterator(): Iterator<T> {
+        return object : Iterator<T> {
+
+            override fun hasNext(): Boolean {
+                return pointer < list.size
+            }
+
+            override fun next(): T {
+                return list[pointer++]
+            }
+        }
+    }
 }
 
-fun DrawElement.isTap(chartContext: ChartContext): Boolean {
-    return chartContext.tapState.value && chartContext.tapLocation in this
+fun DrawElement.isTap(interactionStates: ChartInteractionStates): Boolean {
+    return interactionStates.isTap && interactionStates.tapState.location in this
 }
 
-fun DrawElement.isLongPressed(chartContext: ChartContext): Boolean {
-    return chartContext.longPressTapState.value && chartContext.longPressLocation in this
+fun DrawElement.isLongPressed(interactionStates: ChartInteractionStates): Boolean {
+    return interactionStates.isLongPress && interactionStates.longPressState.location in this
 }
 
-fun DrawElement.isDoubleTap(chartContext: ChartContext): Boolean {
-    return chartContext.doubleTapState.value && chartContext.doubleTapLocation in this
+fun DrawElement.isDoubleTap(interactionStates: ChartInteractionStates): Boolean {
+    return interactionStates.isDoubleTap && interactionStates.doubleTapState.location in this
 }

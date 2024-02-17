@@ -2,7 +2,6 @@ package me.jack.compose.chart.draw
 
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -12,23 +11,22 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import kotlinx.coroutines.CoroutineScope
 import me.jack.compose.chart.component.TapGestures
 import me.jack.compose.chart.context.ChartContext
-import me.jack.compose.chart.context.chartInteractionHandler
-import me.jack.compose.chart.context.chartScrollState
-import me.jack.compose.chart.context.tryEmit
 import me.jack.compose.chart.draw.cache.DrawingKeyframeCache
-import me.jack.compose.chart.draw.interaction.elementInteraction
-import me.jack.compose.chart.interaction.ChartElementInteraction
 import me.jack.compose.chart.interaction.ChartTapInteraction
+import me.jack.compose.chart.interaction.DrawElementInteraction
 import me.jack.compose.chart.scope.ChartDataset
 import me.jack.compose.chart.scope.ChartDatasetAccessScope
 import me.jack.compose.chart.scope.ChartDatasetAccessScopeInstance
 import me.jack.compose.chart.scope.SingleChartScope
+import me.jack.compose.chart.scope.drawElementInteraction
 import me.jack.compose.chart.scope.fastForEach
 import me.jack.compose.chart.scope.fastForEachWithNext
 import me.jack.compose.chart.scope.getChartGroupData
@@ -36,46 +34,8 @@ import me.jack.compose.chart.scope.getChartGroupData
 @Composable
 fun <T> SingleChartScope<T>.ChartCanvas(
     modifier: Modifier = Modifier,
-    interactionSource: MutableInteractionSource = MutableInteractionSource(),
     onDraw: ChartDrawScope<T>.() -> Unit
 ) {
-    val interactionStates = rememberInteractionStates(interactionSource)
-    val drawBlock by rememberUpdatedState(onDraw)
-    var chartDrawScope: ChartDrawScope<T>? by remember {
-        mutableStateOf(null)
-    }
-    val scope = rememberCoroutineScope()
-    Spacer(
-        modifier = modifier
-            .drawBehind {
-                if (null == chartDrawScope) {
-                    chartDrawScope = ChartDrawScope(
-                        singleChartScope = this@ChartCanvas,
-                        drawScope = this,
-                        scope = scope,
-                        tapGestures = tapGestures,
-                        interactionStates = interactionStates
-                    )
-                }
-                val currentChartDrawScope = checkNotNull(chartDrawScope)
-                currentChartDrawScope.reset()
-                currentChartDrawScope.isPreLayout = true
-                drawBlock.invoke(currentChartDrawScope)
-                currentChartDrawScope.isPreLayout = false
-                currentChartDrawScope.updateCurrentActivatedDrawElement()
-                currentChartDrawScope.moveToNextDrawElement()
-                drawBlock.invoke(currentChartDrawScope)
-            }
-    )
-}
-
-@Composable
-fun <T> SingleChartScope<T>.LazyChartCanvas(
-    modifier: Modifier = Modifier.padding(),
-    interactionSource: MutableInteractionSource = MutableInteractionSource(),
-    onDraw: ChartDrawScope<T>.(current: T) -> Unit
-) {
-    val interactionStates = rememberInteractionStates(interactionSource)
     val drawBlock by rememberUpdatedState(onDraw)
     var chartDrawScope: ChartDrawScope<T>? by remember {
         mutableStateOf(null)
@@ -85,7 +45,7 @@ fun <T> SingleChartScope<T>.LazyChartCanvas(
         modifier = modifier.drawBehind {
             if (null == chartDrawScope) {
                 chartDrawScope = ChartDrawScope(
-                    singleChartScope = this@LazyChartCanvas,
+                    singleChartScope = this@ChartCanvas,
                     drawScope = this,
                     scope = scope,
                     tapGestures = tapGestures,
@@ -95,15 +55,11 @@ fun <T> SingleChartScope<T>.LazyChartCanvas(
             val currentChartDrawScope = checkNotNull(chartDrawScope)
             currentChartDrawScope.reset()
             currentChartDrawScope.isPreLayout = true
-            fastForEach { currentItem ->
-                drawBlock(currentChartDrawScope, currentItem)
-            }
+            drawBlock.invoke(currentChartDrawScope)
             currentChartDrawScope.isPreLayout = false
             currentChartDrawScope.updateCurrentActivatedDrawElement()
             currentChartDrawScope.moveToNextDrawElement()
-            fastForEach { currentItem ->
-                drawBlock(currentChartDrawScope, currentItem)
-            }
+            drawBlock.invoke(currentChartDrawScope)
         }
     )
 }
@@ -111,13 +67,17 @@ fun <T> SingleChartScope<T>.LazyChartCanvas(
 @Composable
 fun <T> SingleChartScope<T>.LazyChartCanvas(
     modifier: Modifier = Modifier,
-    interactionSource: MutableInteractionSource = MutableInteractionSource(),
-    onDraw: ChartDrawScope<T>.(current: T, next: T) -> Unit
+    onDraw: ChartDrawScope<T>.(current: T) -> Unit
 ) {
-    val interactionStates = rememberInteractionStates(interactionSource)
-    val drawBlock by rememberUpdatedState(onDraw)
     var chartDrawScope: ChartDrawScope<T>? by remember {
         mutableStateOf(null)
+    }
+    val drawBlock by rememberUpdatedState {
+        if (null != chartDrawScope) {
+            fastForEach { currentItem ->
+                onDraw(chartDrawScope!!, currentItem)
+            }
+        }
     }
     val scope = rememberCoroutineScope()
     Spacer(
@@ -134,15 +94,50 @@ fun <T> SingleChartScope<T>.LazyChartCanvas(
             val currentChartDrawScope = checkNotNull(chartDrawScope)
             currentChartDrawScope.reset()
             currentChartDrawScope.isPreLayout = true
-            fastForEachWithNext { current, next ->
-                drawBlock(currentChartDrawScope, current, next)
-            }
+            drawBlock.invoke()
             currentChartDrawScope.isPreLayout = false
             currentChartDrawScope.updateCurrentActivatedDrawElement()
             currentChartDrawScope.moveToNextDrawElement()
+            drawBlock.invoke()
+        }
+    )
+}
+
+@Composable
+fun <T> SingleChartScope<T>.LazyChartCanvas(
+    modifier: Modifier = Modifier,
+    onDraw: ChartDrawScope<T>.(current: T, next: T) -> Unit
+) {
+    var chartDrawScope: ChartDrawScope<T>? by remember {
+        mutableStateOf(null)
+    }
+    val drawBlock by rememberUpdatedState {
+        if (null != chartDrawScope) {
             fastForEachWithNext { current, next ->
-                drawBlock(currentChartDrawScope, current, next)
+                onDraw(chartDrawScope!!, current, next)
             }
+        }
+    }
+    val scope = rememberCoroutineScope()
+    Spacer(
+        modifier = modifier.drawBehind {
+            if (null == chartDrawScope) {
+                chartDrawScope = ChartDrawScope(
+                    singleChartScope = this@LazyChartCanvas,
+                    drawScope = this,
+                    scope = scope,
+                    tapGestures = tapGestures,
+                    interactionStates = interactionStates
+                )
+            }
+            val currentChartDrawScope = checkNotNull(chartDrawScope)
+            currentChartDrawScope.reset()
+            currentChartDrawScope.isPreLayout = true
+            drawBlock.invoke()
+            currentChartDrawScope.isPreLayout = false
+            currentChartDrawScope.updateCurrentActivatedDrawElement()
+            currentChartDrawScope.moveToNextDrawElement()
+            drawBlock.invoke()
         }
     )
 }
@@ -166,6 +161,10 @@ internal fun <T : DrawElement> defaultDrawingElementFactory(key: Class<T>): T {
         DrawElement.Circle::class.java -> DrawElement.Circle()
         DrawElement.Oval::class.java -> DrawElement.Oval()
         DrawElement.Arc::class.java -> DrawElement.Arc()
+        DrawElement.Line::class.java -> DrawElement.Line()
+        DrawElement.Path::class.java -> DrawElement.Path()
+        DrawElement.RoundRect::class.java -> DrawElement.RoundRect()
+        DrawElement.DrawElementGroup::class.java -> DrawElement.DrawElementGroup()
         else -> error("Does not support this class type:$key")
     } as T
 }
@@ -180,6 +179,9 @@ class ChartDrawScope<T>(
     ChartDatasetAccessScope by ChartDatasetAccessScopeInstance {
     val chartContext: ChartContext = singleChartScope.chartContext
     val chartDataset: ChartDataset<T> = singleChartScope.chartDataset
+    private val interactionSource: MutableInteractionSource = singleChartScope.interactionSource
+    private val drawElementInteraction: DrawElementInteraction
+        get() = singleChartScope.drawElementInteraction
 
     /**
      * Interaction drawing element cache pool, we can not mix this pool with screen drawing element.
@@ -232,15 +234,28 @@ class ChartDrawScope<T>(
             )
         }
 
-    fun interactionRect(
-        topLeft: Offset,
-        size: Size
+    inline fun clickableGroup(
+        topLeft: Offset = currentLeftTopOffset,
+        size: Size = childSize,
+        onDraw: () -> Unit
     ) {
-        val drawElement: DrawElement.Rect = obtainDrawElement()
-        drawElement.topLeft = topLeft
-        drawElement.size = size
-        currentDrawElement = drawElement
-        detectClickableInteraction(currentDrawElement, currentItem())
+        if (isPreLayout()) {
+            try {
+                val drawElementGroup: DrawElement.DrawElementGroup = obtainDrawElement()
+                drawElementGroup.topLeft = topLeft
+                drawElementGroup.size = size
+                drawElementGroup.isActivated = true
+                drawElementGroup.children.resetPointer()
+                addChildDrawElement(drawElementGroup)
+                setCurrentDrawElementGroup(drawElementGroup)
+                onDraw()
+            } finally {
+                setCurrentDrawElementGroup(null)
+            }
+        } else {
+            onDraw()
+            moveToNextDrawElement()
+        }
     }
 
     fun interactionArc(
@@ -248,7 +263,8 @@ class ChartDrawScope<T>(
         size: Size,
         startAngle: Float,
         sweepAngle: Float,
-        strokeWidth: Float = 0f
+        strokeWidth: Float = 0f,
+        focusPoint: Offset = Offset.Unspecified
     ) {
         val drawElement: DrawElement.Arc = obtainDrawElement()
         drawElement.topLeft = topLeft
@@ -256,19 +272,22 @@ class ChartDrawScope<T>(
         drawElement.startAngle = startAngle
         drawElement.sweepAngle = sweepAngle
         drawElement.strokeWidth = strokeWidth
-        currentDrawElement = drawElement
-        detectClickableInteraction(currentDrawElement, currentItem())
+        drawElement.focusPoint = focusPoint
+        detectClickableInteraction(drawElement, currentItem())
+        detectChartInteraction(drawElement)
     }
 
     fun interactionCircle(
         center: Offset,
-        radius: Float
+        radius: Float,
+        focusPoint: Offset = Offset.Unspecified
     ) {
         val drawElement: DrawElement.Circle = obtainDrawElement()
         drawElement.center = center
         drawElement.radius = radius
-        currentDrawElement = drawElement
-        detectClickableInteraction(currentDrawElement, currentItem())
+        drawElement.focusPoint = focusPoint
+        detectClickableInteraction(drawElement, currentItem())
+        detectChartInteraction(drawElement)
     }
 
     fun interactionRect(
@@ -280,9 +299,64 @@ class ChartDrawScope<T>(
         drawElement.topLeft = topLeft
         drawElement.size = size
         drawElement.focusPoint = focusPoint
-        currentDrawElement = drawElement
-        detectClickableInteraction(currentDrawElement, currentItem())
-        detectChartInteraction()
+        detectClickableInteraction(drawElement, currentItem())
+        detectChartInteraction(drawElement)
+    }
+
+    fun interactionLine(
+        start: Offset,
+        end: Offset,
+        strokeWidth: Float,
+        focusPoint: Offset = Offset.Unspecified
+    ) {
+        val drawElement: DrawElement.Line = obtainDrawElement()
+        drawElement.start = start
+        drawElement.end = end
+        drawElement.strokeWidth = strokeWidth
+        drawElement.focusPoint = focusPoint
+        detectClickableInteraction(drawElement, currentItem())
+        detectChartInteraction(drawElement)
+    }
+
+    fun interactionPath(
+        bounds: Rect,
+        strokeWidth: Float = 0f,
+        focusPoint: Offset = Offset.Unspecified
+    ) {
+        val drawElement: DrawElement.Path = obtainDrawElement()
+        drawElement.bounds = bounds
+        drawElement.strokeWidth = strokeWidth
+        drawElement.focusPoint = focusPoint
+        detectClickableInteraction(drawElement, currentItem())
+        detectChartInteraction(drawElement)
+    }
+
+    fun interactionOval(
+        topLeft: Offset,
+        size: Size,
+        focusPoint: Offset = Offset.Unspecified
+    ) {
+        val drawElement: DrawElement.Oval = obtainDrawElement()
+        drawElement.topLeft = topLeft
+        drawElement.size = size
+        drawElement.focusPoint = focusPoint
+        detectClickableInteraction(drawElement, currentItem())
+        detectChartInteraction(drawElement)
+    }
+
+    fun interactionRoundRect(
+        topLeft: Offset,
+        size: Size,
+        cornerRadius: CornerRadius = CornerRadius.Zero,
+        focusPoint: Offset = Offset.Unspecified
+    ) {
+        val drawElement: DrawElement.RoundRect = obtainDrawElement()
+        drawElement.topLeft = topLeft
+        drawElement.size = size
+        drawElement.cornerRadius = cornerRadius
+        drawElement.focusPoint = focusPoint
+        detectClickableInteraction(drawElement, currentItem())
+        detectChartInteraction(drawElement)
     }
 
     private fun <T : DrawElement> T.copyInteractionDrawElement(): T {
@@ -291,18 +365,18 @@ class ChartDrawScope<T>(
         return newDrawElement.copy(this) as T
     }
 
-    private fun detectChartInteraction() {
-        if (!isHoveredOrPressed()) return
-        val elementInteraction = chartContext.elementInteraction
+    private fun detectChartInteraction(drawElement: DrawElement) {
+        if (!drawElement.isHoveredOrPressed()) return
+        val elementInteraction = drawElementInteraction
         val chartGroupData = chartDataset.getChartGroupData(index)
         var oldElement: DrawElement = DrawElement.None
-        if (elementInteraction is ChartElementInteraction.Element<*>) {
+        if (elementInteraction is DrawElementInteraction.Element<*, *>) {
             oldElement = elementInteraction.drawElement
         }
-        if (oldElement != currentDrawElement) {
-            val newDrawElement = currentDrawElement.copyInteractionDrawElement()
-            chartContext.chartInteractionHandler.tryEmit(
-                ChartElementInteraction.Element(
+        if (oldElement != drawElement) {
+            val newDrawElement = drawElement.copyInteractionDrawElement()
+            interactionSource.tryEmit(
+                DrawElementInteraction.Element(
                     drawElement = newDrawElement,
                     currentItem = currentItem(),
                     currentGroupItems = chartGroupData
@@ -311,29 +385,43 @@ class ChartDrawScope<T>(
         }
     }
 
-    private fun isScrollInProgress(): Boolean {
-        return chartContext.chartScrollState?.isScrollInProgress ?: false
-    }
-
     private fun detectClickableInteraction(
         drawElement: DrawElement,
         currentItem: T
     ) {
-        if (drawElement.isTap(chartContext)) {
-            tapGestures.performTap(currentItem)
-            chartContext.chartInteractionHandler.tryEmit(
+        if (drawElement.isTap(interactionStates)) {
+            val currentElement = currentDrawElement
+            if (currentElement is DrawElement.DrawElementGroup) {
+                val chartGroupData = chartDataset.getChartGroupData(index)
+                tapGestures.performGroupTap(chartGroupData)
+            } else {
+                tapGestures.performTap(currentItem)
+            }
+            interactionSource.tryEmit(
                 ChartTapInteraction.ExitTap
             )
         }
-        if (drawElement.isDoubleTap(chartContext)) {
-            tapGestures.performDoubleTap(currentItem)
-            chartContext.chartInteractionHandler.tryEmit(
+        if (drawElement.isDoubleTap(interactionStates)) {
+            val currentElement = currentDrawElement
+            if (currentElement is DrawElement.DrawElementGroup) {
+                val chartGroupData = chartDataset.getChartGroupData(index)
+                tapGestures.performGroupDoubleTap(chartGroupData)
+            } else {
+                tapGestures.performDoubleTap(currentItem)
+            }
+            interactionSource.tryEmit(
                 ChartTapInteraction.ExitDoubleTap
             )
         }
-        if (drawElement.isLongPressed(chartContext)) {
-            tapGestures.performLongPress(currentItem)
-            chartContext.chartInteractionHandler.tryEmit(
+        if (drawElement.isLongPressed(interactionStates)) {
+            val currentElement = currentDrawElement
+            if (currentElement is DrawElement.DrawElementGroup) {
+                val chartGroupData = chartDataset.getChartGroupData(index)
+                tapGestures.performGroupLongPress(chartGroupData)
+            } else {
+                tapGestures.performLongPress(currentItem)
+            }
+            interactionSource.tryEmit(
                 ChartTapInteraction.ExitLongPress
             )
         }

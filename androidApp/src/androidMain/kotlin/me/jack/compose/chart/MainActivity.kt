@@ -7,6 +7,7 @@ import me.jack.compose.demo.BubbleDemos
 import me.jack.compose.demo.CandleStickDemos
 import me.jack.compose.demo.CombinedChartDemos
 import me.jack.compose.demo.DonutDemos
+import me.jack.compose.demo.DrawAnimationDemos
 import me.jack.compose.demo.LineDemos
 import me.jack.compose.demo.PieDemos
 import me.jack.compose.demo.initialAndDisplayComposeClassDemoList
@@ -16,6 +17,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         initialAndDisplayComposeClassDemoList(
             getString(R.string.app_name),
+            DrawAnimationDemos::class.java,
             BarDemos::class.java,
             LineDemos::class.java,
             BubbleDemos::class.java,

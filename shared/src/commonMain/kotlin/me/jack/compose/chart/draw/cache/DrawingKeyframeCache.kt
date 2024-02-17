@@ -52,6 +52,7 @@ fun <T : DrawElement> defaultDrawingElementFactory(key: Class<T>): T {
         DrawElement.Points::class.java -> DrawElement.Points()
         DrawElement.RoundRect::class.java -> DrawElement.RoundRect()
         DrawElement.Path::class.java -> DrawElement.Path()
+        DrawElement.DrawElementGroup::class.java -> DrawElement.DrawElementGroup()
         else -> error("Does not support this class type:$key")
     } as T
 }

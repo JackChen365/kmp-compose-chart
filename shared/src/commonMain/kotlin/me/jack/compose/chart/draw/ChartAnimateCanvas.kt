@@ -87,7 +87,7 @@ import me.jack.compose.chart.interaction.ChartHoverInteraction
  *     )
  * }
  * ```
- * AnimateCanvas is a immutable canvas, means invoke multiple times will have the same result.
+ * AnimateCanvas should be an immutable canvas, means invoke multiple times with same parameter will have the same result.
  * We will invoke the onDraw twice, first we evaluate all the drawing elements, and [ChartAnimateDrawScope.isPreLayout] will be true,
  * Then, we use the drawing elements to check if we should change the drawing states, and [ChartAnimateDrawScope.isPreLayout] will be false
  *
@@ -100,42 +100,17 @@ import me.jack.compose.chart.interaction.ChartHoverInteraction
 fun AnimateCanvas(
     modifier: Modifier = Modifier,
     interactionSource: MutableInteractionSource = MutableInteractionSource(),
+    chartInteractionStates: ChartInteractionStates? = null,
     onDraw: ChartAnimateDrawScope.() -> Unit
 ) {
-    val interactionStates = rememberInteractionStates(interactionSource)
+    val interactionStates = chartInteractionStates ?: rememberInteractionStates(interactionSource)
     val drawBlock by rememberUpdatedState(onDraw)
     var drawScope: ChartAnimateDrawScope? by remember {
         mutableStateOf(null)
     }
     val scope = rememberCoroutineScope()
     Spacer(
-        modifier = modifier.pointerInput(Unit) {
-            detectTapGestures(
-                onPress = { offset ->
-                    val press = PressInteraction.Press(offset)
-                    interactionSource.emit(press)
-                    if (tryAwaitRelease()) {
-                        interactionSource.emit(PressInteraction.Release(press))
-                    } else {
-                        interactionSource.emit(PressInteraction.Cancel(press))
-                    }
-                }
-            )
-        }.onHoverPointerEvent { event ->
-            val last = event.changes.lastOrNull()
-            if (null != last) {
-                when (event.type) {
-                    PointerEventType.Enter ->
-                        interactionSource.tryEmit(ChartHoverInteraction.Enter(last.position))
-
-                    PointerEventType.Exit ->
-                        interactionSource.tryEmit(ChartHoverInteraction.Exit(last.position))
-
-                    PointerEventType.Move ->
-                        interactionSource.tryEmit(ChartHoverInteraction.Move(last.position))
-                }
-            }
-        }.drawBehind {
+        modifier = modifier.animateInteraction(interactionSource).drawBehind {
             if (null == drawScope) {
                 drawScope = ChartAnimateDrawScope(
                     drawScope = this,
@@ -155,24 +130,55 @@ fun AnimateCanvas(
     )
 }
 
+fun Modifier.animateInteraction(
+    interactionSource: MutableInteractionSource
+) = pointerInput(Unit) {
+    detectTapGestures(
+        onPress = { offset ->
+            val press = PressInteraction.Press(offset)
+            interactionSource.emit(press)
+            if (tryAwaitRelease()) {
+                interactionSource.emit(PressInteraction.Release(press))
+            } else {
+                interactionSource.emit(PressInteraction.Cancel(press))
+            }
+        }
+    )
+}.onHoverPointerEvent { event ->
+    val last = event.changes.lastOrNull()
+    if (null != last) {
+        when (event.type) {
+            PointerEventType.Enter ->
+                interactionSource.tryEmit(ChartHoverInteraction.Enter(last.position))
+
+            PointerEventType.Exit ->
+                interactionSource.tryEmit(ChartHoverInteraction.Exit(last.position))
+
+            PointerEventType.Move -> {
+                interactionSource.tryEmit(ChartHoverInteraction.Move(last.position))
+            }
+        }
+    }
+}
+
 open class ChartAnimateDrawScope(
     private val drawScope: DrawScope,
     private val scope: CoroutineScope,
-    private val interactionStates: ChartInteractionStates
+    val interactionStates: ChartInteractionStates
 ) : DrawScope by drawScope {
     internal var isPreLayout = true
 
     /**
-     * Animatable state drawing cache pool.
+     * Animate table state drawing cache pool.
      */
     private val drawingStateKeyframeCache = DrawingKeyframeCache()
 
     /**
      * Current drawing element cache pool.
      */
-    protected val drawingElementCache = DrawingKeyframeCache()
+    val drawingElementCache = DrawingKeyframeCache()
     protected var currentDrawElement: DrawElement = DrawElement.None
-    private var currentActivatedDrawElement: DrawElement = DrawElement.None
+    private var currentDrawElementGroup: DrawElement.DrawElementGroup? = null
     private val animateStateTable: MutableMap<Any, out AnimationState<*, *>> = mutableMapOf()
     private var animateStateUsedCount: Int = 0
     private var children: ArrayDeque<DrawElement> = ArrayDeque()
@@ -206,12 +212,16 @@ open class ChartAnimateDrawScope(
 
     fun isPreLayout(): Boolean = isPreLayout
 
-    protected inline fun <reified T : DrawElement> obtainDrawElement(): T {
-        return drawingElementCache.getCachedDrawElement()
+    inline fun <reified T : DrawElement> obtainDrawElement(): T {
+        val drawElement = drawingElementCache.getCachedDrawElement<T>()
+        drawElement.isActivated = false
+        drawElement.isPressed = false
+        drawElement.isHovered = false
+        return drawElement
     }
 
     infix fun Color.whenPressed(targetValue: Color): Color {
-        return valueIf(targetValue = targetValue, condition = ::isHoveredOrPressed)
+        return valueIf(targetValue = targetValue, condition = ::isCurrentElementHoveredOrPressed)
     }
 
     private fun Color.valueIf(
@@ -248,7 +258,7 @@ open class ChartAnimateDrawScope(
         return animateToIf(
             key = ChartIntAnimateState::class.java,
             targetValue = targetValue,
-            condition = ::isHoveredOrPressed
+            condition = ::isCurrentElementHoveredOrPressed
         )
     }
 
@@ -256,7 +266,7 @@ open class ChartAnimateDrawScope(
         return animateToIf(
             key = ChartFloatAnimateState::class.java,
             targetValue = targetValue,
-            condition = ::isHoveredOrPressed
+            condition = ::isCurrentElementHoveredOrPressed
         )
     }
 
@@ -264,7 +274,7 @@ open class ChartAnimateDrawScope(
         return animateToIf(
             key = ChartIntOffsetAnimateState::class.java,
             targetValue = targetValue,
-            condition = ::isHoveredOrPressed
+            condition = ::isCurrentElementHoveredOrPressed
         )
     }
 
@@ -272,7 +282,7 @@ open class ChartAnimateDrawScope(
         return animateToIf(
             key = ChartColorAnimateState::class.java,
             targetValue = targetValue,
-            condition = ::isHoveredOrPressed
+            condition = ::isCurrentElementHoveredOrPressed
         )
     }
 
@@ -280,7 +290,7 @@ open class ChartAnimateDrawScope(
         return animateToIf(
             key = ChartOffsetAnimateState::class.java,
             targetValue = targetValue,
-            condition = ::isHoveredOrPressed
+            condition = ::isCurrentElementHoveredOrPressed
         )
     }
 
@@ -288,7 +298,7 @@ open class ChartAnimateDrawScope(
         return animateToIf(
             key = ChartSizeAnimateState::class.java,
             targetValue = targetValue,
-            condition = ::isHoveredOrPressed
+            condition = ::isCurrentElementHoveredOrPressed
         )
     }
 
@@ -296,7 +306,7 @@ open class ChartAnimateDrawScope(
         return animateToIf(
             key = ChartDpAnimateState::class.java,
             targetValue = targetValue,
-            condition = ::isHoveredOrPressed
+            condition = ::isCurrentElementHoveredOrPressed
         )
     }
 
@@ -304,7 +314,7 @@ open class ChartAnimateDrawScope(
         return animateToIf(
             key = ChartDpOffsetAnimateState::class.java,
             targetValue = targetValue,
-            condition = ::isHoveredOrPressed
+            condition = ::isCurrentElementHoveredOrPressed
         )
     }
 
@@ -315,31 +325,43 @@ open class ChartAnimateDrawScope(
         return animateToIf(
             key = ChartSpAnimateState::class.java,
             targetValue = targetValue,
-            condition = ::isHoveredOrPressed
+            condition = ::isCurrentElementHoveredOrPressed
         )
     }
 
-    private fun isPressed(): Boolean {
+    private fun DrawElement.isPressed(): Boolean {
         return interactionStates.isPressed &&
-                currentActivatedDrawElement.isActivated &&
-                interactionStates.pressState.location in currentDrawElement
+                (interactionStates.pressState.location in this || currentDrawElement.isPressed)
     }
 
-    private fun isHovered(): Boolean {
+    private fun DrawElement.isHovered(): Boolean {
         return interactionStates.isHovered &&
-                currentActivatedDrawElement.isActivated &&
-                interactionStates.hoverState.location in currentDrawElement
+                (interactionStates.hoverState.location in this || currentDrawElement.isHovered)
     }
 
     internal fun updateCurrentActivatedDrawElement() {
         if (interactionStates.isHovered || interactionStates.isPressed) {
-            currentActivatedDrawElement = children.findLast { drawElement ->
-                drawElement.isActivated && (interactionStates.hoverState.location in drawElement)
-            } ?: DrawElement.None
+            children.forEach { drawElement ->
+                if (drawElement.isActivated && (interactionStates.hoverState.location in drawElement)) {
+                    if (drawElement is DrawElement.DrawElementGroup) {
+                        drawElement.children.forEach { child ->
+                            child.isHovered = interactionStates.isHovered
+                            child.isPressed = interactionStates.isPressed
+                        }
+                    } else {
+                        drawElement.isHovered = interactionStates.isHovered
+                        drawElement.isPressed = interactionStates.isPressed
+                    }
+                }
+            }
         }
     }
 
-    protected fun isHoveredOrPressed(): Boolean {
+    protected fun isCurrentElementHoveredOrPressed(): Boolean {
+        return currentDrawElement.isHovered() || currentDrawElement.isPressed()
+    }
+
+    protected fun DrawElement.isHoveredOrPressed(): Boolean {
         return isHovered() || isPressed()
     }
 
@@ -375,6 +397,23 @@ open class ChartAnimateDrawScope(
     fun moveToNextDrawElement() {
         if (isPreLayout()) return
         currentDrawElement = children.removeFirstOrNull() ?: DrawElement.None
+    }
+
+    fun setCurrentDrawElementGroup(drawElementGroup: DrawElement.DrawElementGroup?) {
+        this.currentDrawElementGroup = drawElementGroup
+    }
+
+    fun addChildDrawElement(drawElement: DrawElement) {
+        children.add(drawElement)
+    }
+
+    open fun onDrawElement(drawElement: DrawElement) = Unit
+
+    open fun onCreateDrawElement(drawElement: DrawElement) = Unit
+
+    private fun addDrawElementIfNecessary(drawElement: DrawElement) {
+        val drawElementGroup = currentDrawElementGroup ?: return
+        drawElementGroup.children.add(drawElement)
     }
 
     override fun drawRect(
@@ -540,16 +579,16 @@ open class ChartAnimateDrawScope(
             },
             onDraw = {
                 drawScope.drawArc(
-                    color,
-                    startAngle,
-                    sweepAngle,
-                    useCenter,
-                    topLeft,
-                    size,
-                    alpha,
-                    style,
-                    colorFilter,
-                    blendMode
+                    color = color,
+                    startAngle = startAngle,
+                    sweepAngle = sweepAngle,
+                    useCenter = useCenter,
+                    topLeft = topLeft,
+                    size = size,
+                    alpha = alpha,
+                    style = style,
+                    colorFilter = colorFilter,
+                    blendMode = blendMode
                 )
             }
         )
@@ -1047,10 +1086,13 @@ open class ChartAnimateDrawScope(
     ) {
         if (isPreLayout()) {
             val drawElement = createDrawElement()
+            onCreateDrawElement(drawElement)
+            addDrawElementIfNecessary(drawElement)
             drawElement.isActivated = 0 < animateStateUsedCount
             animateStateUsedCount = 0
-            children.add(drawElement)
+            addChildDrawElement(drawElement)
         } else {
+            onDrawElement(currentDrawElement)
             onDraw()
             moveToNextDrawElement()
         }

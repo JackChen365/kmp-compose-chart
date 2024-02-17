@@ -1,5 +1,6 @@
 package me.jack.compose.chart.scope
 
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
@@ -18,9 +19,11 @@ import me.jack.compose.chart.component.TapGestures
 import me.jack.compose.chart.context.ChartContext
 import me.jack.compose.chart.context.chartScrollState
 import me.jack.compose.chart.context.isHorizontal
+import me.jack.compose.chart.draw.ChartDummyInteractionStates
+import me.jack.compose.chart.draw.ChartInteractionStates
 import me.jack.compose.chart.draw.DrawElement
-import me.jack.compose.chart.draw.interaction.elementInteraction
-import me.jack.compose.chart.interaction.ChartElementInteraction
+import me.jack.compose.chart.interaction.DrawElementInteraction
+import me.jack.compose.chart.interaction.DrawElementInteractionState
 import me.jack.compose.chart.measure.ChartContentMeasurePolicy
 import me.jack.compose.chart.model.BarData
 import me.jack.compose.chart.model.BubbleData
@@ -60,9 +63,11 @@ internal data class ChartParentData(
     var anchor: ChartAnchor = ChartAnchor.Center, var alignContent: Boolean = true
 )
 
-interface MutableScrollableScope {
+interface MutableChartScope {
     var contentSize: Size
     var contentRange: Size
+    var interactionSource: MutableInteractionSource
+    var interactionStates: ChartInteractionStates
 }
 
 class SingleChartScopeInstance<T>(
@@ -70,7 +75,9 @@ class SingleChartScopeInstance<T>(
     override val chartContext: ChartContext = ChartContext,
     override val tapGestures: TapGestures<T>,
     override val contentMeasurePolicy: ChartContentMeasurePolicy,
-) : SingleChartScope<T>, MutableScrollableScope {
+    override var interactionSource: MutableInteractionSource = MutableInteractionSource(),
+    override var interactionStates: ChartInteractionStates = ChartDummyInteractionStates()
+) : SingleChartScope<T>, MutableChartScope {
     override var contentSize: Size = Size.Zero
     override var contentRange: Size = Size.Zero
 
@@ -91,11 +98,12 @@ class ChartCombinedScope(
     override val contentMeasurePolicy: ChartContentMeasurePolicy,
     override val childItemCount: Int,
     override val groupCount: Int,
+    override var interactionSource: MutableInteractionSource = MutableInteractionSource(),
+    override var interactionStates: ChartInteractionStates = ChartDummyInteractionStates(),
     val chartScopes: List<SingleChartScopeInstance<*>>
-) : ChartScope, MutableScrollableScope {
+) : ChartScope, MutableChartScope {
     override var contentSize: Size = Size.Zero
     override var contentRange: Size = Size.Zero
-
     override fun Modifier.anchor(anchor: ChartAnchor, alignContent: Boolean): Modifier {
         return this.then(ChartAnchorElement(anchor))
     }
@@ -180,26 +188,34 @@ interface ChartScope {
     ): Modifier
 }
 
-inline fun <reified T, reified E : DrawElement> SingleChartScope<T>.withChartElementInteraction(
-    block: (drawElement: E, current: T, currentGroupItems: List<T>) -> Unit
-) {
-    val elementInteraction = chartContext.elementInteraction
-    if (elementInteraction is ChartElementInteraction.Element<*> &&
-        elementInteraction.currentItem is T &&
-        elementInteraction.drawElement is E
-    ) {
-        @Suppress("UNCHECKED_CAST")
-        block(
-            elementInteraction.drawElement,
-            elementInteraction.currentItem,
-            elementInteraction.currentGroupItems as List<T>
-        )
+inline fun <reified T, reified E : DrawElement> SingleChartScope<T>.drawElementInteraction(): DrawElementInteraction.Element<T, E>? {
+    val currentDrawElementInteraction = drawElementInteraction
+    if (currentDrawElementInteraction is DrawElementInteraction.Element<*, *>) {
+        val current = currentDrawElementInteraction.currentItem
+        val drawElement = currentDrawElementInteraction.drawElement
+        if (null != current && current is T && drawElement is E) {
+            @Suppress("UNCHECKED_CAST")
+            return currentDrawElementInteraction as DrawElementInteraction.Element<T, E>
+        }
     }
+    return null
 }
+
+val SingleChartScope<*>.drawElementInteraction: DrawElementInteraction
+    get() {
+        val drawElementInteractionState = interactionStates.interactionStates.find { it is DrawElementInteractionState }
+        val drawElementInteraction = drawElementInteractionState?.state as? DrawElementInteraction
+        return drawElementInteraction ?: error("Could not found drawElementInteractionState.")
+    }
+
+val SingleChartScope<*>.isScrollInProgress: Boolean
+    get() = chartContext.chartScrollState?.isScrollInProgress ?: false
 
 interface SingleChartScope<T> : ChartScope {
     val chartDataset: ChartDataset<T>
     val tapGestures: TapGestures<T>
+    val interactionSource: MutableInteractionSource
+    val interactionStates: ChartInteractionStates
 
     override val childItemCount: Int
         get() = chartDataset.size

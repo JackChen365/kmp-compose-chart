@@ -1,12 +1,12 @@
 package me.jack.compose.chart.component
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawStyle
@@ -16,7 +16,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import me.jack.compose.chart.context.ChartContext
 import me.jack.compose.chart.context.ChartScrollableState
-import me.jack.compose.chart.context.chartInteraction
 import me.jack.compose.chart.context.scrollable
 import me.jack.compose.chart.context.zoom
 import me.jack.compose.chart.draw.ChartCanvas
@@ -29,11 +28,11 @@ import me.jack.compose.chart.scope.ChartDataset
 import me.jack.compose.chart.scope.LineChartScope
 import me.jack.compose.chart.scope.SingleChartScope
 import me.jack.compose.chart.scope.currentRange
+import me.jack.compose.chart.scope.drawElementInteraction
 import me.jack.compose.chart.scope.fastForEachWithNext
 import me.jack.compose.chart.scope.isFirstIndex
 import me.jack.compose.chart.scope.isHorizontal
 import me.jack.compose.chart.scope.rememberMaxValue
-import me.jack.compose.chart.scope.withChartElementInteraction
 import me.jack.compose.chart.theme.LocalChartTheme
 import kotlin.math.max
 
@@ -47,17 +46,11 @@ open class LineSpec(
 ) : ChartComponentSpec
 
 class DarkLineSpec(
-    backgroundColor: Color = Color.DarkGray,
-    strokeWidth: Dp = 4.dp,
-    circleRadius: Dp = 8.dp,
-    pressAlpha: Float = 0.4f
+    backgroundColor: Color = Color.DarkGray, strokeWidth: Dp = 4.dp, circleRadius: Dp = 8.dp, pressAlpha: Float = 0.4f
 ) : LineSpec(backgroundColor, strokeWidth, circleRadius, pressAlpha)
 
 class CurveLineSpec(
-    val strokeWidth: Dp = 4.dp,
-    val circleRadius: Dp = 8.dp,
-    val pressAlpha: Float = 0.4f,
-    val style: DrawStyle = Fill
+    val strokeWidth: Dp = 4.dp, val circleRadius: Dp = 8.dp, val pressAlpha: Float = 0.4f, val style: DrawStyle = Fill
 ) : ChartComponentSpec
 
 val LineChartContent: @Composable SingleChartScope<LineData>.() -> Unit = {
@@ -105,20 +98,21 @@ fun LineChart(
     scrollableState: ChartScrollableState? = null,
     content: @Composable SingleChartScope<LineData>.() -> Unit = LineChartContent
 ) {
+    val chartContext = remember {
+        ChartContext.scrollable(
+            orientation = contentMeasurePolicy.orientation
+        ).zoom()
+    }
     SingleChartLayout(
         modifier = modifier.background(lineSpec.backgroundColor),
-        chartContext = ChartContext.chartInteraction(remember { MutableInteractionSource() })
-            .scrollable(
-                orientation = contentMeasurePolicy.orientation
-            )
-            .zoom(),
+        chartContext = chartContext,
         tapGestures = tapGestures,
         contentMeasurePolicy = contentMeasurePolicy,
         chartDataset = chartDataset,
         scrollableState = scrollableState,
         content = content
     ) {
-        ChartLineComponent(lineSpec = lineSpec)
+        LineComponent(lineSpec = lineSpec)
         LineMarkerComponent()
     }
 }
@@ -132,13 +126,14 @@ fun StockLineChart(
     scrollableState: ChartScrollableState? = null,
     content: @Composable SingleChartScope<LineData>.() -> Unit = LineChartContent
 ) {
+    val chartContext = remember {
+        ChartContext.scrollable(
+            orientation = contentMeasurePolicy.orientation
+        ).zoom()
+    }
     SingleChartLayout(
         modifier = modifier,
-        chartContext = ChartContext.chartInteraction(remember { MutableInteractionSource() })
-            .scrollable(
-                orientation = contentMeasurePolicy.orientation
-            )
-            .zoom(),
+        chartContext = chartContext,
         tapGestures = tapGestures,
         contentMeasurePolicy = contentMeasurePolicy,
         chartDataset = chartDataset,
@@ -152,23 +147,20 @@ fun StockLineChart(
 
 @Composable
 fun LineChartScope.LineMarkerComponent() {
-    withChartElementInteraction<LineData, DrawElement.Rect> { drawElement, _, currentGroupItems ->
-        MarkerDashLineComponent(
-            drawElement = drawElement,
-            topLeft = drawElement.topLeft,
-            contentSize = drawElement.size
-        )
-        RectMarkerComponent(
-            topLeft = drawElement.topLeft,
-            size = drawElement.size,
-            focusPoint = drawElement.focusPoint,
-            displayInfo = "(" + currentGroupItems.joinToString { String.format("%.2f", it.value) } + ")"
-        )
-    }
+    val (drawElement, _, currentGroupItems) = drawElementInteraction<LineData, DrawElement.Rect>() ?: return
+    MarkerDashLineComponent(
+        drawElement = drawElement,
+        topLeft = drawElement.topLeft,
+        contentSize = drawElement.size
+    )
+    RectMarkerComponent(topLeft = drawElement.topLeft,
+        size = drawElement.size,
+        focusPoint = drawElement.focusPoint,
+        displayInfo = "(" + currentGroupItems.joinToString { String.format("%.2f", it.value) } + ")")
 }
 
 @Composable
-fun SingleChartScope<LineData>.ChartLineComponent(
+fun SingleChartScope<LineData>.LineComponent(
     lineSpec: LineSpec = LocalChartTheme.current.lineSpec
 ) {
     val maxValue = chartDataset.rememberMaxValue { it.value }
@@ -179,41 +171,54 @@ fun SingleChartScope<LineData>.ChartLineComponent(
     ) { current, next ->
         val lineItemSize = size.crossAxis / maxValue
         drawLine(
-            color = current.color,
-            start = if (isHorizontal) Offset(
-                x = childCenterOffset.x,
-                y = size.height - current.value * lineItemSize
+            color = current.color, start = if (isHorizontal) Offset(
+                x = childCenterOffset.x, y = size.height - current.value * lineItemSize
             ) else Offset(
-                x = size.width - current.value * lineItemSize,
-                y = childCenterOffset.y
-            ),
-            end = if (isHorizontal) Offset(
-                x = nextChildCenterOffset.x,
-                y = size.height - next.value * lineItemSize
+                x = size.width - current.value * lineItemSize, y = childCenterOffset.y
+            ), end = if (isHorizontal) Offset(
+                x = nextChildCenterOffset.x, y = size.height - next.value * lineItemSize
             ) else Offset(
-                x = size.width - next.value * lineItemSize,
-                y = 0f
-            ),
-            strokeWidth = lineSpec.strokeWidth.toPx()
+                x = size.width - next.value * lineItemSize, y = 0f
+            ), strokeWidth = lineSpec.strokeWidth.toPx()
         )
         if (isFirstIndex()) {
-            drawCircle(
-                color = current.color whenPressedAnimateTo current.color.copy(alpha = lineSpec.pressAlpha),
-                radius = circleRadiusPx whenPressedAnimateTo circleRadiusPx * 1.4f,
-                center = Offset(
+            interactionRect(
+                topLeft = currentLeftTopOffset,
+                size = childSize,
+                focusPoint = Offset(
                     x = childCenterOffset.x,
                     y = size.height - current.value * lineItemSize,
                 )
             )
+            clickableGroup {
+                drawCircle(
+                    color = current.color whenPressedAnimateTo current.color.copy(alpha = lineSpec.pressAlpha),
+                    radius = circleRadiusPx whenPressedAnimateTo circleRadiusPx * 1.4f,
+                    center = Offset(
+                        x = childCenterOffset.x,
+                        y = size.height - current.value * lineItemSize,
+                    )
+                )
+            }
         }
-        drawCircle(
-            color = current.color whenPressedAnimateTo next.color.copy(alpha = lineSpec.pressAlpha),
-            radius = circleRadiusPx whenPressedAnimateTo circleRadiusPx * 1.4f,
-            center = Offset(
+        interactionRect(
+            topLeft = nextLeftTopOffset,
+            size = childSize,
+            focusPoint = Offset(
                 x = nextChildCenterOffset.x,
                 y = size.height - next.value * lineItemSize,
             )
         )
+        clickableGroup(topLeft = nextLeftTopOffset) {
+            drawCircle(
+                color = current.color whenPressedAnimateTo next.color.copy(alpha = lineSpec.pressAlpha),
+                radius = circleRadiusPx whenPressedAnimateTo circleRadiusPx * 1.4f,
+                center = Offset(
+                    x = nextChildCenterOffset.x,
+                    y = size.height - next.value * lineItemSize,
+                )
+            )
+        }
     }
 }
 
@@ -226,17 +231,18 @@ fun SimpleCurveLineChart(
     tapGestures: TapGestures<LineData> = rememberCombinedTapGestures(),
     content: @Composable SingleChartScope<LineData>.() -> Unit = simpleChartContent
 ) {
+    val chartContext = remember {
+        ChartContext.scrollable(
+            orientation = contentMeasurePolicy.orientation
+        ).zoom()
+    }
     SingleChartLayout(
         modifier = modifier,
-        chartContext = ChartContext.chartInteraction(remember { MutableInteractionSource() })
-            .scrollable(
-                orientation = contentMeasurePolicy.orientation
-            )
-            .zoom(),
+        chartContext = chartContext,
         tapGestures = tapGestures,
         contentMeasurePolicy = contentMeasurePolicy,
         chartDataset = chartDataset,
-        content = { content() }
+        content = content
     ) {
         CurveLineComponent(lineSpec)
         LineMarkerComponent()
@@ -253,13 +259,14 @@ fun CurveLineChart(
     scrollableState: ChartScrollableState? = null,
     content: @Composable LineChartScope.() -> Unit = CurveLineChartContent
 ) {
+    val chartContext = remember {
+        ChartContext.scrollable(
+            orientation = contentMeasurePolicy.orientation
+        ).zoom()
+    }
     SingleChartLayout(
         modifier = modifier,
-        chartContext = ChartContext.chartInteraction(remember { MutableInteractionSource() })
-            .scrollable(
-                orientation = contentMeasurePolicy.orientation
-            )
-            .zoom(),
+        chartContext = chartContext,
         tapGestures = tapGestures,
         contentMeasurePolicy = contentMeasurePolicy,
         scrollableState = scrollableState,
@@ -321,18 +328,31 @@ private fun SingleChartScope<LineData>.HorizontalCurveLine(
                 x3 = nextOffset.x,
                 y3 = nextOffset.y,
             )
-            // add clickable rect
-            drawCircle(
-                color = current.color whenPressedAnimateTo current.color.copy(alpha = spec.pressAlpha),
-                radius = 0f whenPressedAnimateTo spec.circleRadius.toPx(),
-                center = currentOffset
+            interactionRect(
+                topLeft = currentLeftTopOffset,
+                size = Size(width = childSize.width, size.height),
+                focusPoint = currentOffset
             )
-            if (index + 1 == range.last) {
+            clickableGroup {
                 drawCircle(
-                    color = next.color whenPressedAnimateTo next.color.copy(alpha = spec.pressAlpha),
+                    color = current.color whenPressedAnimateTo current.color.copy(alpha = spec.pressAlpha),
                     radius = 0f whenPressedAnimateTo spec.circleRadius.toPx(),
-                    center = nextChildCenterOffset.copy(y = nextOffset.y)
+                    center = currentOffset
                 )
+            }
+            if (index + 1 == range.last) {
+                interactionRect(
+                    topLeft = nextLeftTopOffset,
+                    size = Size(width = childSize.width, size.height),
+                    focusPoint = nextChildCenterOffset.copy(y = nextOffset.y)
+                )
+                clickableGroup(topLeft = nextChildCenterOffset) {
+                    drawCircle(
+                        color = next.color whenPressedAnimateTo next.color.copy(alpha = spec.pressAlpha),
+                        radius = 0f whenPressedAnimateTo spec.circleRadius.toPx(),
+                        center = nextChildCenterOffset.copy(y = nextOffset.y)
+                    )
+                }
                 val currentItem: LineData = currentItem()
                 path.lineTo(nextOffset.x + childSize.mainAxis / 2 + strokeWidthPx, nextOffset.y)
                 drawPath(
@@ -344,9 +364,7 @@ private fun SingleChartScope<LineData>.HorizontalCurveLine(
                 path.lineTo(nextOffset.x + childSize.mainAxis / 2, size.height)
                 path.lineTo(0f, size.height)
                 drawPath(
-                    path = path,
-                    color = currentItem.color.copy(alpha = spec.pressAlpha),
-                    style = spec.style
+                    path = path, color = currentItem.color.copy(alpha = spec.pressAlpha), style = spec.style
                 )
             }
         }
@@ -364,22 +382,15 @@ fun SingleChartScope<LineData>.ChartStockLineComponent(
     ) { current, next ->
         val lineItemSize = size.crossAxis / maxValue
         drawLine(
-            color = current.color,
-            start = if (isHorizontal) Offset(
-                x = childCenterOffset.x,
-                y = current.value * lineItemSize
+            color = current.color, start = if (isHorizontal) Offset(
+                x = childCenterOffset.x, y = current.value * lineItemSize
             ) else Offset(
-                x = current.value * lineItemSize,
-                y = childCenterOffset.y
-            ),
-            end = if (isHorizontal) Offset(
-                x = nextChildCenterOffset.x,
-                y = next.value * lineItemSize
+                x = current.value * lineItemSize, y = childCenterOffset.y
+            ), end = if (isHorizontal) Offset(
+                x = nextChildCenterOffset.x, y = next.value * lineItemSize
             ) else Offset(
-                x = size.width - next.value * lineItemSize,
-                y = 0f
-            ),
-            strokeWidth = strokeWidth.toPx()
+                x = size.width - next.value * lineItemSize, y = 0f
+            ), strokeWidth = strokeWidth.toPx()
         )
     }
 }

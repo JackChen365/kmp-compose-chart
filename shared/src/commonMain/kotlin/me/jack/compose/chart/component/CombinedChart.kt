@@ -47,7 +47,7 @@ class ChartComponentScope {
         chartDataset: ChartDataset<LineData>,
         tapGestures: TapGestures<LineData> = rememberCombinedTapGestures(),
         content: @Composable LineChartScope.() -> Unit = {
-            ChartLineComponent()
+            LineComponent()
         }
     ) {
         chartComponents.add(
