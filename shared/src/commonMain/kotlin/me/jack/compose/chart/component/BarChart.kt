@@ -1,6 +1,5 @@
 package me.jack.compose.chart.component
 
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -13,11 +12,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import me.jack.compose.chart.context.ChartContext
 import me.jack.compose.chart.context.ChartScrollableState
-import me.jack.compose.chart.context.chartInteraction
 import me.jack.compose.chart.context.scrollable
 import me.jack.compose.chart.context.zoom
 import me.jack.compose.chart.draw.ChartCanvas
-import me.jack.compose.chart.draw.ChartTraceableDrawScope
 import me.jack.compose.chart.draw.DrawElement
 import me.jack.compose.chart.draw.LazyChartCanvas
 import me.jack.compose.chart.measure.ChartContentMeasurePolicy
@@ -26,11 +23,11 @@ import me.jack.compose.chart.scope.BarChartScope
 import me.jack.compose.chart.scope.ChartDataset
 import me.jack.compose.chart.scope.MarkedChartDataset
 import me.jack.compose.chart.scope.computeGroupTotalValues
+import me.jack.compose.chart.scope.drawElementInteraction
 import me.jack.compose.chart.scope.fastForEachByGroupIndex
 import me.jack.compose.chart.scope.isHorizontal
 import me.jack.compose.chart.scope.isLastGroupIndex
 import me.jack.compose.chart.scope.rememberMaxValue
-import me.jack.compose.chart.scope.withChartElementInteraction
 
 enum class BarStyle {
     Normal, Stack
@@ -75,7 +72,6 @@ fun BarChart(
 ) {
     val chartContext = remember {
         ChartContext
-            .chartInteraction(MutableInteractionSource())
             .scrollable(
                 orientation = contentMeasurePolicy.orientation
             ).zoom()
@@ -106,8 +102,6 @@ fun BarChart(
 /**
  * The standard bar component.
  * The component in [BarChartScope] and it helps generate the bar by [BarData]
- * Each bar can be clicked since we use [ChartTraceableDrawScope] and put the drawing element in [clickable]
- * This component support orientation and you can change the orientation by [ChartContentMeasurePolicy]
  */
 @Composable
 fun BarChartScope.BarComponent() {
@@ -117,20 +111,19 @@ fun BarChartScope.BarComponent() {
         modifier = Modifier.fillMaxSize()
     ) { current ->
         val barItemSize = size.crossAxis / maxValue
-        animatableWithInteraction {
-            val (topLeft, size) = if (isHorizontal) {
-                Offset(currentLeftTopOffset.x, size.height - barItemSize * current.value) to
-                        Size(childSize.mainAxis, barItemSize * current.value)
-            } else {
-                Offset(0f, currentLeftTopOffset.y) to
-                        Size(barItemSize * current.value, childSize.mainAxis)
-            }
-            drawRect(
-                color = current.color whenPressedAnimateTo current.color.copy(alpha = 0.4f),
-                topLeft = topLeft,
-                size = size
-            )
+        val (topLeft, size) = if (isHorizontal) {
+            Offset(currentLeftTopOffset.x, size.height - barItemSize * current.value) to
+                    Size(childSize.mainAxis, barItemSize * current.value)
+        } else {
+            Offset(0f, currentLeftTopOffset.y) to
+                    Size(barItemSize * current.value, childSize.mainAxis)
         }
+        interactionRect(topLeft, size)
+        drawRect(
+            color = current.color whenPressedAnimateTo current.color.copy(alpha = 0.4f),
+            topLeft = topLeft,
+            size = size
+        )
     }
 }
 
@@ -155,13 +148,12 @@ fun BarChartScope.BarStackComponent() {
             } else {
                 Offset(offset, currentLeftTopOffset.y) to Size(barItemSize * current.value, childSize.mainAxis)
             }
-            animatableWithInteraction {
-                drawRect(
-                    color = current.color whenPressedAnimateTo current.color.copy(alpha = 0.4f),
-                    topLeft = topLeft,
-                    size = rectSize
-                )
-            }
+            interactionRect(topLeft, rectSize)
+            drawRect(
+                color = current.color whenPressedAnimateTo current.color.copy(alpha = 0.4f),
+                topLeft = topLeft,
+                size = rectSize
+            )
             offset = if (isLastGroupIndex()) 0f else offset + barItemSize * current.value
         }
     }
@@ -169,19 +161,18 @@ fun BarChartScope.BarStackComponent() {
 
 @Composable
 fun BarChartScope.BarMarkerComponent() {
-    withChartElementInteraction<BarData, DrawElement.Rect> { drawElement, current, _ ->
-        MarkerDashLineComponent(
-            drawElement = drawElement,
-            topLeft = drawElement.topLeft,
-            contentSize = drawElement.size
-        )
-        RectMarkerComponent(
-            topLeft = drawElement.topLeft,
-            size = drawElement.size,
-            focusPoint = drawElement.focusPoint,
-            displayInfo = "(" + current.value.toString() + ")"
-        )
-    }
+    val (drawElement, current) = drawElementInteraction<BarData, DrawElement.Rect>() ?: return
+    MarkerDashLineComponent(
+        drawElement = drawElement,
+        topLeft = drawElement.topLeft,
+        contentSize = drawElement.size
+    )
+    RectMarkerComponent(
+        topLeft = drawElement.topLeft,
+        size = drawElement.size,
+        focusPoint = drawElement.focusPoint,
+        displayInfo = "(" + current.value.toString() + ")"
+    )
 }
 
 @Composable

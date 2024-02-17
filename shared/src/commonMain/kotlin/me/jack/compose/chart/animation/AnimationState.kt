@@ -15,6 +15,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
@@ -79,6 +80,14 @@ fun offsetAnimateState(
     durationMillis: Int = DefaultDurationMillis
 ): ChartOffsetAnimateState {
     return ChartOffsetAnimateState(scope, initialValue, durationMillis)
+}
+
+fun intOffsetAnimateState(
+    scope: CoroutineScope,
+    initialValue: IntOffset = IntOffset.Zero,
+    durationMillis: Int = DefaultDurationMillis
+): ChartIntOffsetAnimateState {
+    return ChartIntOffsetAnimateState(scope, initialValue, durationMillis)
 }
 
 fun dpAnimateState(
@@ -258,6 +267,25 @@ class ChartOffsetAnimateState(
     operator fun getValue(
         thisRef: Any?, property: KProperty<*>
     ): Offset {
+        return value
+    }
+}
+
+class ChartIntOffsetAnimateState(
+    scope: CoroutineScope,
+    initialValue: IntOffset = IntOffset.Zero,
+    durationMillis: Int = DefaultDurationMillis
+) : ChartAnimateState<IntOffset, AnimationVector2D>(scope, durationMillis, initialValue, IntOffset.VectorConverter) {
+
+    operator fun setValue(
+        thisRef: Any?, property: KProperty<*>, value: IntOffset
+    ) {
+        this.value = value
+    }
+
+    operator fun getValue(
+        thisRef: Any?, property: KProperty<*>
+    ): IntOffset {
         return value
     }
 }

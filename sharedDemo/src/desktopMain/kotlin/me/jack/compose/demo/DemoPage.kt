@@ -39,7 +39,6 @@ import androidx.compose.ui.unit.sp
 import me.jack.compose.demo.builder.ComposableDemo
 import me.jack.compose.demo.builder.Demo
 import me.jack.compose.demo.builder.DemoCategory
-import me.jack.compose.demo.builder.DemoNavigator
 
 @Composable
 fun AppMainView(
@@ -75,8 +74,8 @@ fun DesktopAppDemo(
                         "pie_chart2.svg",
                         "stock_chart.svg",
                         "table_chart_view.svg",
-                        "palette.svg",
                         "finance.svg",
+                        "palette.svg",
                         "stacked_bar_chart.svg",
                         "show_chart.svg"
                     )
@@ -168,8 +167,4 @@ private fun RootTopBar(title: String) {
         modifier = Modifier.shadow(4.dp),
         backgroundColor = MaterialTheme.colors.primary
     )
-}
-
-fun interface OnDemoItemClickListener {
-    fun onClick(navigator: DemoNavigator, demo: Demo)
 }

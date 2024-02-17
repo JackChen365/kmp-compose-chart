@@ -24,10 +24,9 @@ import androidx.compose.ui.unit.dp
 import me.jack.compose.chart.component.DonutData
 import me.jack.compose.chart.component.toPx
 import me.jack.compose.chart.draw.DrawElement
-import me.jack.compose.chart.draw.interaction.hoverLocation
 import me.jack.compose.chart.scope.PieChartScope
 import me.jack.compose.chart.scope.SingleChartScope
-import me.jack.compose.chart.scope.withChartElementInteraction
+import me.jack.compose.chart.scope.drawElementInteraction
 import me.jack.compose.chart.util.calculateAngle
 import me.jack.compose.chart.util.convertAngleToCoordinates
 
@@ -36,13 +35,12 @@ fun PieChartScope.DebugDonutComponent(
     modifier: Modifier = Modifier,
     padding: PaddingValues = PaddingValues(8.dp)
 ) {
-    withChartElementInteraction<DonutData, DrawElement.Arc> { drawElement, current, _ ->
-        DebugArcDrawElementComponent(
-            drawElement = drawElement,
-            padding = padding,
-            displayInfo = "(" + current.value.toString() + ")"
-        )
-    }
+    val (drawElement, current) = drawElementInteraction<DonutData, DrawElement.Arc>() ?: return
+    DebugArcDrawElementComponent(
+        drawElement = drawElement,
+        padding = padding,
+        displayInfo = "(" + current.value.toString() + ")"
+    )
 }
 
 @Composable
@@ -64,10 +62,7 @@ fun SingleChartScope<*>.DebugArcDrawElementComponent(
         angle = angle,
         radius = drawElement.size.minDimension / 2
     )
-    var currentPosition by remember {
-        mutableStateOf(Offset.Zero)
-    }
-    currentPosition = chartContext.hoverLocation
+    val currentPosition = interactionStates.hoverState.location
     var currentAngle by remember {
         mutableStateOf(0f)
     }
@@ -80,7 +75,6 @@ fun SingleChartScope<*>.DebugArcDrawElementComponent(
                 point = currentPosition
             )
             drawCircle(color = Color.Red, radius = 8.dp.toPx())
-            drawCircle(color = Color.Green, radius = 8.dp.toPx(), center = offset)
             drawRect(color = Color.Red, style = Stroke(1f))
             drawRect(
                 color = Color.Red,
@@ -95,7 +89,8 @@ fun SingleChartScope<*>.DebugArcDrawElementComponent(
                         .toPx() - padding.calculateEndPadding(
                         LayoutDirection.Ltr
                     ).toPx(),
-                    height = size.minDimension - padding.calculateTopPadding().toPx() - padding.calculateBottomPadding().toPx()
+                    height = size.minDimension - padding.calculateTopPadding().toPx() - padding.calculateBottomPadding()
+                        .toPx()
                 )
             )
         }

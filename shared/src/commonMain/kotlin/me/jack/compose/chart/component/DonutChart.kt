@@ -1,24 +1,27 @@
 package me.jack.compose.chart.component
 
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.DrawStyle
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import me.jack.compose.chart.context.ChartContext
-import me.jack.compose.chart.context.chartInteraction
 import me.jack.compose.chart.draw.DrawElement
 import me.jack.compose.chart.draw.LazyChartCanvas
 import me.jack.compose.chart.measure.rememberBoxChartContentMeasurePolicy
@@ -27,9 +30,9 @@ import me.jack.compose.chart.model.SimplePieData
 import me.jack.compose.chart.scope.ChartDataset
 import me.jack.compose.chart.scope.DonutChartScope
 import me.jack.compose.chart.scope.PieChartScope
+import me.jack.compose.chart.scope.drawElementInteraction
 import me.jack.compose.chart.scope.isFirstGroupAndFirstIndex
 import me.jack.compose.chart.scope.rememberSumValue
-import me.jack.compose.chart.scope.withChartElementInteraction
 import me.jack.compose.chart.theme.LocalChartTheme
 import me.jack.compose.chart.util.convertAngleToCoordinates
 
@@ -50,12 +53,9 @@ fun DonutChart(
     tapGestures: TapGestures<DonutData> = rememberCombinedTapGestures(),
     content: @Composable DonutChartScope.() -> Unit = simpleChartContent
 ) {
-    val chartContext = remember {
-        ChartContext.chartInteraction(MutableInteractionSource())
-    }
     SingleChartLayout(
         modifier = modifier,
-        chartContext = chartContext,
+        chartContext = ChartContext,
         tapGestures = tapGestures,
         contentMeasurePolicy = rememberBoxChartContentMeasurePolicy(),
         chartDataset = chartDataset,
@@ -88,35 +88,42 @@ fun DonutChartScope.DonutComponent(
             height = size.minDimension - strokeWidthPx
         )
         val sweepAngle = current.value / degreesValue
-        animatableWithInteraction {
-            drawArc(
-                color = current.color whenPressedAnimateTo current.color.copy(alpha = spec.pressedAlpha),
-                startAngle = angleOffset,
-                sweepAngle = sweepAngle,
-                useCenter = false,
-                topLeft = Offset(
-                    x = (size.width - arcSize.width) / 2,
-                    y = (size.height - arcSize.height) / 2
-                ) whenPressedAnimateTo Offset(
-                    x = (size.width - arcSize.width * spec.pressedScale) / 2,
-                    y = (size.height - arcSize.height * spec.pressedScale) / 2
-                ),
-                size = arcSize whenPressedAnimateTo arcSize.times(spec.pressedScale),
-                style = Stroke(strokeWidthPx)
-            )
-        }
+        interactionArc(
+            startAngle = angleOffset,
+            sweepAngle = sweepAngle,
+            topLeft = Offset(
+                x = (size.width - arcSize.width) / 2,
+                y = (size.height - arcSize.height) / 2
+            ),
+            size = arcSize whenPressedAnimateTo arcSize.times(spec.pressedScale),
+            strokeWidth = strokeWidthPx
+        )
+        drawArc(
+            color = current.color whenPressedAnimateTo current.color.copy(alpha = spec.pressedAlpha),
+            startAngle = angleOffset,
+            sweepAngle = sweepAngle,
+            useCenter = false,
+            topLeft = Offset(
+                x = (size.width - arcSize.width) / 2,
+                y = (size.height - arcSize.height) / 2
+            ) whenPressedAnimateTo Offset(
+                x = (size.width - arcSize.width * spec.pressedScale) / 2,
+                y = (size.height - arcSize.height * spec.pressedScale) / 2
+            ),
+            size = arcSize whenPressedAnimateTo arcSize.times(spec.pressedScale),
+            style = Stroke(strokeWidthPx)
+        )
         angleOffset += sweepAngle
     }
 }
 
 @Composable
 fun DonutChartScope.ArcMarkerComponent() {
-    withChartElementInteraction<DonutData, DrawElement.Arc> { drawElement, current, _ ->
-        ArcMarkerComponent(
-            drawElement = drawElement,
-            displayInfo = "(" + current.value.toString() + ")"
-        )
-    }
+    val (drawElement, current) = drawElementInteraction<DonutData, DrawElement.Arc>() ?: return
+    ArcMarkerComponent(
+        drawElement = drawElement,
+        displayInfo = "(" + current.value.toString() + ")"
+    )
 }
 
 class DonutTextSpec(
@@ -145,20 +152,6 @@ fun PieChartScope.DonutTextComponent(
         }
         val sweepAngle = current.value / degreesValue
         val angle = startAngle + sweepAngle / 2
-        val arcSize = Size(
-            width = size.minDimension - strokeWidthPx,
-            height = size.minDimension - strokeWidthPx
-        )
-        animatableArc(
-            topLeft = Offset(
-                x = (size.width - arcSize.width) / 2,
-                y = (size.height - arcSize.height) / 2
-            ),
-            size = arcSize,
-            startAngle = startAngle,
-            sweepAngle = sweepAngle,
-            strokeWidth = strokeWidthPx,
-        )
         val textLayoutResult = textMeasure.measure(
             text = current.value.toString(),
             style = TextStyle(
@@ -182,5 +175,18 @@ fun PieChartScope.DonutTextComponent(
             drawText(textLayoutResult, topLeft = textTopLeft)
         }
         startAngle += sweepAngle
+    }
+
+    fun drawText(
+        textLayoutResult: TextLayoutResult,
+        color: Color = Color.Unspecified,
+        topLeft: Offset = Offset.Zero,
+        alpha: Float = Float.NaN,
+        shadow: Shadow? = null,
+        textDecoration: TextDecoration? = null,
+        drawStyle: DrawStyle? = null,
+        blendMode: BlendMode = DrawScope.DefaultBlendMode
+    ) {
+
     }
 }

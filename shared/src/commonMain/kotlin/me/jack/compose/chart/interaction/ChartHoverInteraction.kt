@@ -7,7 +7,7 @@ interface ChartHoverInteraction : Interaction {
 
     class Enter(
         val localLocation: Offset,
-    ) : ChartElementInteraction
+    ) : DrawElementInteraction
 
     class Move(val localLocation: Offset) : ChartHoverInteraction
 

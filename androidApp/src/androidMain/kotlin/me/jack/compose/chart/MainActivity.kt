@@ -7,6 +7,7 @@ import me.jack.compose.demo.BubbleDemos
 import me.jack.compose.demo.CandleStickDemos
 import me.jack.compose.demo.CombinedChartDemos
 import me.jack.compose.demo.DonutDemos
+import me.jack.compose.demo.DrawAnimationDemos
 import me.jack.compose.demo.LineDemos
 import me.jack.compose.demo.PieDemos
 import me.jack.compose.demo.initialAndDisplayComposeClassDemoList
@@ -22,7 +23,8 @@ class MainActivity : ComponentActivity() {
             DonutDemos::class.java,
             PieDemos::class.java,
             CandleStickDemos::class.java,
-            CombinedChartDemos::class.java
+            CombinedChartDemos::class.java,
+            DrawAnimationDemos::class.java
         )
     }
 }

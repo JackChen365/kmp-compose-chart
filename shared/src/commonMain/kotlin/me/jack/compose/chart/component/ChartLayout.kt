@@ -1,6 +1,5 @@
 package me.jack.compose.chart.component
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.calculateCentroid
@@ -11,14 +10,11 @@ import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.gestures.scrollable
-import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -26,7 +22,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clipToBounds
@@ -52,7 +47,6 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.toSize
 import kotlinx.coroutines.launch
 import me.jack.compose.chart.context.ChartContext
-import me.jack.compose.chart.context.ChartInteractionHandler
 import me.jack.compose.chart.context.ChartScrollState
 import me.jack.compose.chart.context.ChartScrollableState
 import me.jack.compose.chart.context.ChartZoomState
@@ -63,8 +57,10 @@ import me.jack.compose.chart.context.isElementAvailable
 import me.jack.compose.chart.context.rememberScrollDelegate
 import me.jack.compose.chart.context.requireChartScrollState
 import me.jack.compose.chart.context.requireChartZoomState
-import me.jack.compose.chart.interaction.ChartHoverInteraction
+import me.jack.compose.chart.draw.animateInteraction
+import me.jack.compose.chart.draw.rememberInteractionStates
 import me.jack.compose.chart.interaction.ChartTapInteraction
+import me.jack.compose.chart.interaction.collectDrawElementAsState
 import me.jack.compose.chart.measure.ChartContentMeasurePolicy
 import me.jack.compose.chart.measure.withScrollMeasurePolicy
 import me.jack.compose.chart.measure.withZoomableMeasurePolicy
@@ -72,7 +68,7 @@ import me.jack.compose.chart.scope.ChartAnchor
 import me.jack.compose.chart.scope.ChartCombinedScope
 import me.jack.compose.chart.scope.ChartDataset
 import me.jack.compose.chart.scope.ChartScope
-import me.jack.compose.chart.scope.MutableScrollableScope
+import me.jack.compose.chart.scope.MutableChartScope
 import me.jack.compose.chart.scope.SingleChartScope
 import me.jack.compose.chart.scope.SingleChartScopeInstance
 import me.jack.compose.chart.scope.alignContent
@@ -134,7 +130,7 @@ fun CombinedChartLayout(
     MultiMeasureLayout(
         modifier = modifier,
         content = {
-            ChartContent(
+            CombinedChartContent(
                 modifier = Modifier,
                 contentMeasurePolicy = contentMeasurePolicy,
                 chartContext = chartContext,
@@ -176,12 +172,19 @@ private fun <T> SingleChartContent(
         }
         wrappedContentMeasurePolicy
     }
+    val interactionSource = remember {
+        MutableInteractionSource()
+    }
+    val interactionStates =
+        rememberInteractionStates(interactionSource, interactionSource.collectDrawElementAsState())
     val chartScopeInstance = remember(chartDataset) {
         SingleChartScopeInstance(
             chartDataset = chartDataset,
             chartContext = chartContext,
             tapGestures = tapGestures,
-            contentMeasurePolicy = rememberContentMeasurePolicy
+            contentMeasurePolicy = rememberContentMeasurePolicy,
+            interactionSource = interactionSource,
+            interactionStates = interactionStates
         )
     }
     chartScopeInstance.chartContent = {
@@ -204,6 +207,8 @@ fun <T> SingleChartScope<T>.ChartBox(
         modifier = modifier
             .fillMaxSize()
             .clipToBounds()
+            .animateInteraction(interactionSource)
+            .chartTapGesture(interactionSource)
             .chartZoom(chartContext) { _, zoom ->
                 val currentChartScrollState = chartScrollState
                 if (null != currentChartScrollState) {
@@ -218,15 +223,13 @@ fun <T> SingleChartScope<T>.ChartBox(
                 contentMeasurePolicy = contentMeasurePolicy,
                 scrollableState = scrollableState,
                 datasetSize = chartDataset.size
-            )
-            .chartIndication(chartContext)
-            .chartPointerInput(chartContext),
+            ),
         content = content
     )
 }
 
 @Composable
-private fun ChartContent(
+private fun CombinedChartContent(
     modifier: Modifier,
     chartContext: ChartContext,
     contentMeasurePolicy: ChartContentMeasurePolicy,
@@ -253,6 +256,10 @@ private fun ChartContent(
         }
         wrappedContentMeasurePolicy
     }
+    val interactionSource = remember { MutableInteractionSource() }
+    val interactionStates = rememberInteractionStates(
+        interactionSource, interactionSource.collectDrawElementAsState()
+    )
     val chartComponentScopes = remember(chartComponents) {
         val componentScopes = mutableMapOf<ChartComponent<Any>, SingleChartScopeInstance<Any>>()
         chartComponents.forEach { chartComponent ->
@@ -260,7 +267,9 @@ private fun ChartContent(
                 chartDataset = chartComponent.chartDataset,
                 chartContext = chartContext,
                 tapGestures = chartComponent.tapGestures,
-                contentMeasurePolicy = rememberContentMeasurePolicy
+                contentMeasurePolicy = rememberContentMeasurePolicy,
+                interactionSource = interactionSource,
+                interactionStates = interactionStates
             )
             componentScopes[chartComponent] = singleChartScopeInstance
         }
@@ -270,15 +279,19 @@ private fun ChartContent(
         ChartCombinedScope(
             childItemCount = childItemCount,
             chartContext = chartContext,
-            contentMeasurePolicy = rememberContentMeasurePolicy,
             groupCount = groupCount,
-            chartScopes = chartComponentScopes.values.toList()
+            chartScopes = chartComponentScopes.values.toList(),
+            contentMeasurePolicy = rememberContentMeasurePolicy,
+            interactionSource = interactionSource,
+            interactionStates = interactionStates
         )
     }
     Box(
         modifier = modifier
             .fillMaxSize()
             .clipToBounds()
+            .chartTapGesture(interactionSource)
+            .animateInteraction(interactionSource)
             .chartZoom(chartContext) { _, zoom ->
                 with(chartCombinedScope) {
                     val currentChartScrollState = chartScrollState
@@ -294,8 +307,6 @@ private fun ChartContent(
                 contentMeasurePolicy = contentMeasurePolicy,
                 datasetSize = childItemCount
             )
-            .chartIndication(chartContext)
-            .chartPointerInput(chartContext)
     ) {
         chartComponentScopes.forEach { (chartComponent, singleChartScope) ->
             singleChartScope.contentSize = chartCombinedScope.contentSize
@@ -307,9 +318,31 @@ private fun ChartContent(
 }
 
 /**
+ * We don't use composedModifier, this is the better way that official team suggested
  * https://developer.android.com/jetpack/compose/custom-modifiers
  */
-@OptIn(ExperimentalComposeUiApi::class, ExperimentalFoundationApi::class)
+@Composable
+private fun Modifier.chartTapGesture(
+    interactionSource: MutableInteractionSource
+): Modifier {
+    return pointerInput(Unit) {
+            detectTapGestures(
+                onDoubleTap = { offset ->
+                    interactionSource.tryEmit(ChartTapInteraction.DoubleTap(offset))
+                },
+                onTap = { offset ->
+                    interactionSource.tryEmit(ChartTapInteraction.Tap(offset))
+                },
+                onLongPress = { offset ->
+                    interactionSource.tryEmit(ChartTapInteraction.LongPress(offset))
+                }
+            )
+        }
+}
+
+/**
+ * https://developer.android.com/jetpack/compose/custom-modifiers
+ */
 @Composable
 private fun Modifier.chartScrollable(
     chartScope: ChartScope,
@@ -319,7 +352,7 @@ private fun Modifier.chartScrollable(
 ): Modifier {
     val chartScrollState = chartScope.chartContext.chartScrollState as? MutableChartScrollState
         ?: return this.onSizeChanged { size ->
-            if (chartScope is MutableScrollableScope) {
+            if (chartScope is MutableChartScope) {
                 chartScope.contentSize = size.toSize()
                 chartScope.contentRange = size.toSize()
             }
@@ -356,7 +389,7 @@ private fun Modifier.chartScrollable(
         if (IntSize.Zero != contentSize) {
             contentMeasurePolicy.contentSize = contentSize
             val contentRange = with(contentMeasurePolicy) { measureContent(size = contentSize) }
-            if (chartScope is MutableScrollableScope) {
+            if (chartScope is MutableChartScope) {
                 chartScope.contentSize = contentSize.toSize()
                 chartScope.contentRange = contentRange
             }
@@ -450,22 +483,6 @@ private fun ChartScope.updateScrollState(
     )
 }
 
-/**
- * https://developer.android.com/jetpack/compose/custom-modifiers
- */
-@Composable
-private fun Modifier.chartIndication(
-    context: ChartContext
-): Modifier {
-    val chartInteractionHandler = context[ChartInteractionHandler] ?: return this
-    LaunchedEffect(chartInteractionHandler) {
-        with(chartInteractionHandler) {
-            handleInteractionSource()
-        }
-    }
-    return indication(chartInteractionHandler.interactionSource, null)
-}
-
 private fun Modifier.chartZoom(
     context: ChartContext,
     onZoom: ChartContext.(centroid: Offset, zoom: Float) -> Unit
@@ -514,20 +531,30 @@ internal suspend fun PointerInputScope.detectZoomGestures(
     }
 }
 
+
 @Composable
 fun <T> rememberCombinedTapGestures(
     onTap: (currentItem: T) -> Unit = {},
     onDoubleTap: (currentItem: T) -> Unit = { },
-    onLongPress: (currentItem: T) -> Unit = { }
+    onLongPress: (currentItem: T) -> Unit = { },
+    onGroupTap: (currentItem: List<T>) -> Unit = { },
+    onGroupDoubleTap: (currentItem: List<T>) -> Unit = { },
+    onGroupLongPress: (currentItem: List<T>) -> Unit = { },
 ): TapGestures<T> {
     val onTapBlock by rememberUpdatedState(onTap)
     val onDoubleTapBlock by rememberUpdatedState(onDoubleTap)
     val onLongPressBlock by rememberUpdatedState(onLongPress)
+    val onGroupTapBlock by rememberUpdatedState(onGroupTap)
+    val onGroupDoubleTapBlock by rememberUpdatedState(onGroupDoubleTap)
+    val onGroupLongPressBlock by rememberUpdatedState(onGroupLongPress)
     return remember {
         TapGestures<T>()
             .onTap(onTapBlock)
-            .onLongPress(onLongPressBlock)
             .onDoubleTap(onDoubleTapBlock)
+            .onLongPress(onLongPressBlock)
+            .onGroupTap(onGroupTapBlock)
+            .onGroupDoubleTap(onGroupDoubleTapBlock)
+            .onGroupLongPress(onGroupLongPressBlock)
     }
 }
 
@@ -561,23 +588,72 @@ fun <T> rememberOnLongPress(
     }
 }
 
+@Composable
+fun <T> rememberOnGroupTap(
+    onGroupTap: (currentItem: List<T>) -> Unit = { }
+): TapGestures<T> {
+    val onGroupTapBlock by rememberUpdatedState(onGroupTap)
+    return remember {
+        TapGestures<T>().onGroupTap(onGroupTapBlock)
+    }
+}
+
+@Composable
+fun <T> rememberOnGroupDoubleTap(
+    onGroupLongPress: (currentItem: List<T>) -> Unit = { }
+): TapGestures<T> {
+    val onGroupLongPressBlock by rememberUpdatedState(onGroupLongPress)
+    return remember {
+        TapGestures<T>().onGroupDoubleTap(onGroupLongPressBlock)
+    }
+}
+
+@Composable
+fun <T> rememberOnGroupLongPress(
+    onGroupLongPress: (currentItem: List<T>) -> Unit = { }
+): TapGestures<T> {
+    val onGroupLongPressBlock by rememberUpdatedState(onGroupLongPress)
+    return remember {
+        TapGestures<T>().onGroupLongPress(onGroupLongPressBlock)
+    }
+}
+
+@Suppress("unused")
 class TapGestures<T> {
     private var onTap: (currentItem: T) -> Unit = { }
+    private var onGroupTap: (currentItems: List<T>) -> Unit = { }
     private var onDoubleTap: (currentItem: T) -> Unit = { }
+    private var onGroupDoubleTap: (currentItems: List<T>) -> Unit = { }
     private var onLongPress: (currentItem: T) -> Unit = { }
+    private var onGroupLongPress: (currentItems: List<T>) -> Unit = { }
 
-    fun onTap(onTap: (currentItem: T) -> Unit = { }): TapGestures<T> {
+    fun onTap(onTap: (currentItem: T) -> Unit): TapGestures<T> {
         this.onTap = onTap
         return this
     }
 
-    fun onDoubleTap(onDoubleTap: (currentItem: T) -> Unit = { }): TapGestures<T> {
+    fun onDoubleTap(onDoubleTap: (currentItem: T) -> Unit): TapGestures<T> {
         this.onDoubleTap = onDoubleTap
         return this
     }
 
-    fun onLongPress(onLongPress: (currentItem: T) -> Unit = { }): TapGestures<T> {
+    fun onLongPress(onLongPress: (currentItem: T) -> Unit): TapGestures<T> {
         this.onLongPress = onLongPress
+        return this
+    }
+
+    fun onGroupTap(onGroupTap: (currentItem: List<T>) -> Unit): TapGestures<T> {
+        this.onGroupTap = onGroupTap
+        return this
+    }
+
+    fun onGroupDoubleTap(onGroupDoubleTap: (currentItem: List<T>) -> Unit): TapGestures<T> {
+        this.onGroupDoubleTap = onGroupDoubleTap
+        return this
+    }
+
+    fun onGroupLongPress(onGroupLongPress: (currentItem: List<T>) -> Unit): TapGestures<T> {
+        this.onGroupLongPress = onGroupLongPress
         return this
     }
 
@@ -585,65 +661,24 @@ class TapGestures<T> {
         this.onTap.invoke(currentItem)
     }
 
+    fun performGroupTap(currentItems: List<T>) {
+        this.onGroupTap.invoke(currentItems)
+    }
+
     fun performDoubleTap(currentItem: T) {
         this.onDoubleTap.invoke(currentItem)
+    }
+
+    fun performGroupDoubleTap(currentItems: List<T>) {
+        this.onGroupDoubleTap.invoke(currentItems)
     }
 
     fun performLongPress(currentItem: T) {
         this.onLongPress.invoke(currentItem)
     }
-}
 
-/**
- * https://developer.android.com/jetpack/compose/custom-modifiers
- */
-@Composable
-private fun Modifier.chartPointerInput(
-    context: ChartContext
-): Modifier {
-    val chartInteractionHandler = context[ChartInteractionHandler] ?: return this
-    val interactionSource = chartInteractionHandler.interactionSource
-    check(interactionSource is MutableInteractionSource) {
-        "Should use a mutable interaction source."
-    }
-    return pointerInput(Unit) {
-        detectTapGestures(
-            onPress = { offset ->
-                val press = PressInteraction.Press(offset)
-                interactionSource.emit(press)
-                if (tryAwaitRelease()) {
-                    interactionSource.emit(PressInteraction.Release(press))
-                } else {
-                    interactionSource.emit(PressInteraction.Cancel(press))
-                }
-            },
-            onDoubleTap = { offset ->
-                interactionSource.tryEmit(ChartTapInteraction.DoubleTap(offset))
-            },
-            onTap = { offset ->
-                interactionSource.tryEmit(ChartTapInteraction.Tap(offset))
-            },
-            onLongPress = { offset ->
-                interactionSource.tryEmit(ChartTapInteraction.LongPress(offset))
-            }
-        )
-    }.onHoverPointerEvent { event ->
-        val last = event.changes.lastOrNull()
-        if (null != last) {
-            when (event.type) {
-                PointerEventType.Enter -> {
-                    interactionSource.tryEmit(ChartHoverInteraction.Enter(last.position))
-                }
-
-                PointerEventType.Exit -> {
-                    interactionSource.tryEmit(ChartHoverInteraction.Exit(last.position))
-                }
-
-                PointerEventType.Move -> {
-                    interactionSource.tryEmit(ChartHoverInteraction.Move(last.position))
-                }
-            }
-        }
+    fun performGroupLongPress(currentItems: List<T>) {
+        this.onGroupLongPress.invoke(currentItems)
     }
 }
 

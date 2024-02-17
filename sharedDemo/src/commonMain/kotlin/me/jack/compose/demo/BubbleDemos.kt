@@ -20,6 +20,8 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import me.jack.compose.chart.component.BubbleChart
+import me.jack.compose.chart.component.BubbleChartContent
+import me.jack.compose.chart.component.ChartEditDatasetComponent
 import me.jack.compose.chart.component.rememberOnTap
 import me.jack.compose.chart.component.toPx
 import me.jack.compose.chart.measure.rememberFixedContentMeasurePolicy
@@ -43,7 +45,10 @@ class BubbleDemos {
                         currentItem = it
                         snackBarVisible = true
                     }
-                )
+                ){
+                    BubbleChartContent()
+                    ChartEditDatasetComponent()
+                }
                 Spacer(modifier = Modifier.height(8.dp))
                 BubbleChart(
                     modifier = Modifier.height(240.dp),

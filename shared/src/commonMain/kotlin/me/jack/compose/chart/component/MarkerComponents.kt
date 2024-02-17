@@ -1,5 +1,6 @@
 package me.jack.compose.chart.component
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateOffsetAsState
 import androidx.compose.animation.core.animateSizeAsState
 import androidx.compose.foundation.BorderStroke
@@ -45,10 +46,10 @@ import androidx.compose.ui.unit.round
 import androidx.compose.ui.unit.sp
 import me.jack.compose.chart.draw.ChartCanvas
 import me.jack.compose.chart.draw.DrawElement
-import me.jack.compose.chart.draw.isHoveredOrPressed
 import me.jack.compose.chart.scope.SingleChartScope
 import me.jack.compose.chart.scope.isEmpty
 import me.jack.compose.chart.scope.isHorizontal
+import me.jack.compose.chart.scope.isScrollInProgress
 import me.jack.compose.chart.theme.LocalChartTheme
 import me.jack.compose.chart.util.convertAngleToCoordinates
 import kotlin.math.roundToInt
@@ -90,7 +91,7 @@ fun SingleChartScope<*>.RectMarkerComponent(
     displayInfo: String,
     focusPoint: Offset = Offset.Unspecified
 ) {
-    if (!isHoveredOrPressed() || chartDataset.isEmpty) return
+    if (!interactionStates.isHoveredOrPressed || isScrollInProgress || chartDataset.isEmpty) return
     val contentSizeState by animateSizeAsState(size)
     val topLeftState by animateOffsetAsState(topLeft)
     val focusPointState by animateOffsetAsState(focusPoint)
@@ -277,14 +278,18 @@ class DarkMarkerDashLineSpec(
     step: Dp = 8.dp,
 ) : MarkerDashLineSpec(color, strokeWidth, angle, step)
 
+internal fun SingleChartScope<*>.shouldDisplayMarker(): Boolean {
+    return interactionStates.isHoveredOrPressed && !isScrollInProgress && !chartDataset.isEmpty
+}
+
 @Composable
 fun SingleChartScope<*>.MarkerDashLineComponent(
-    spec: MarkerDashLineSpec = MarkerDashLineSpec(),
+    spec: MarkerDashLineSpec = LocalChartTheme.current.markerDashLineSpec,
     drawElement: DrawElement,
     topLeft: Offset,
     contentSize: Size
 ) {
-    if(!isHoveredOrPressed() || chartDataset.isEmpty) return
+    val markerAlphaAnimateState by animateFloatAsState(if(shouldDisplayMarker()) 1f else 0f)
     val pathEffect = remember {
         PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
     }
@@ -296,6 +301,7 @@ fun SingleChartScope<*>.MarkerDashLineComponent(
             .offset { topLeftState.round() }
             .graphicsLayer {
                 clip = true
+                alpha = markerAlphaAnimateState
                 shape = if (drawElement is DrawElement.Circle)
                     CircleShape
                 else DrawElementShape(drawElement)
@@ -306,12 +312,10 @@ fun SingleChartScope<*>.MarkerDashLineComponent(
         val strokeWidthPx = spec.strokeWidth.toPx()
         val hypotenuse = sqrt(size.height * size.height + size.width * size.width)
         val stepsCount = (hypotenuse / stepPx).roundToInt()
-        animatableRect(topLeftState, contentSizeState)
-        val lineColor = Color.Transparent whenPressedAnimateTo spec.color
         rotate(spec.angle, pivot = Offset.Zero) {
             for (i in 0..stepsCount) {
                 drawLine(
-                    color = lineColor,
+                    color = spec.color,
                     start = Offset(x = i * stepPx + strokeWidthPx, y = -size.width),
                     end = Offset(x = i * stepPx, y = hypotenuse),
                     strokeWidth = strokeWidthPx,
@@ -367,13 +371,11 @@ fun SingleChartScope<*>.HoverMarkerComponent(
     ChartCanvas(
         Modifier.fillMaxSize()
     ) {
-        animatable {
-            drawRect(
-                color = Color.Transparent whenPressedAnimateTo color,
-                topLeft = topLeft,
-                size = contentSize
-            )
-        }
+        drawRect(
+            color = Color.Transparent whenPressedAnimateTo color,
+            topLeft = topLeft,
+            size = contentSize
+        )
     }
 }
 
@@ -383,7 +385,7 @@ fun SingleChartScope<*>.ArcMarkerComponent(
     drawElement: DrawElement.Arc,
     displayInfo: String
 ) {
-    if (!isHoveredOrPressed()) return
+    if (!interactionStates.isHoveredOrPressed || chartDataset.isEmpty) return
     val shape = remember {
         TooltipShape(
             cornerRadius = spec.tooltipCornerRadius,

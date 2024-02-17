@@ -2,7 +2,6 @@ package me.jack.compose.chart.component
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,7 +9,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
@@ -24,9 +22,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import me.jack.compose.chart.context.ChartContext
-import me.jack.compose.chart.context.ChartInteractionHandler
 import me.jack.compose.chart.context.ChartScrollableState
-import me.jack.compose.chart.context.chartInteraction
 import me.jack.compose.chart.context.scrollable
 import me.jack.compose.chart.context.zoom
 import me.jack.compose.chart.draw.DrawElement
@@ -37,9 +33,9 @@ import me.jack.compose.chart.scope.CandleStickChartScope
 import me.jack.compose.chart.scope.ChartAnchor
 import me.jack.compose.chart.scope.ChartDataset
 import me.jack.compose.chart.scope.SingleChartScope
+import me.jack.compose.chart.scope.drawElementInteraction
 import me.jack.compose.chart.scope.rememberMaxValue
 import me.jack.compose.chart.scope.rememberMinValue
-import me.jack.compose.chart.scope.withChartElementInteraction
 import me.jack.compose.chart.theme.LocalChartTheme
 import kotlin.math.absoluteValue
 import kotlin.math.min
@@ -111,9 +107,7 @@ fun CandleStickChart(
     SingleChartLayout(
         modifier = modifier,
         chartContext = ChartContext
-            .chartInteraction(
-                remember { MutableInteractionSource() }
-            ).scrollable(
+            .scrollable(
                 orientation = contentMeasurePolicy.orientation
             )
             .zoom(),
@@ -141,7 +135,7 @@ fun CandleStickChartScope.ChartCandleStickComponent(
     ) { candleData ->
         val candleBlockSize = size.height / highestValue
         // we calculate the lastVisibleItemIndex due to other places need it.
-        animatableRectRectWithInteraction(currentLeftTopOffset, childSize)
+        interactionRect(currentLeftTopOffset, childSize)
         drawRect(
             color = Color.Blue whenPressedAnimateTo Color.Blue.copy(alpha = 0.4f),
             topLeft = Offset(
@@ -170,24 +164,23 @@ fun CandleStickChartScope.ChartCandleStickComponent(
 
 @Composable
 fun CandleStickChartScope.ChartCandleDataMarkerComponent() {
-    withChartElementInteraction<CandleData, DrawElement.Rect> { drawElement, currentItem, _ ->
-        HoverMarkerComponent(
-            topLeft = drawElement.topLeft,
-            contentSize = drawElement.size,
-        )
-        MarkerDashLineComponent(
-            drawElement = drawElement,
-            topLeft = drawElement.topLeft,
-            contentSize = drawElement.size,
-        )
-        RectMarkerComponent(
-            topLeft = drawElement.topLeft,
-            size = drawElement.size,
-            focusPoint = drawElement.focusPoint,
-            displayInfo = "(" + currentItem.high + "-" + currentItem.low + ")" +
-                    "(" + currentItem.open + "-" + currentItem.close + ")"
-        )
-    }
+    val (drawElement, currentItem) = drawElementInteraction<CandleData, DrawElement.Rect>() ?: return
+    HoverMarkerComponent(
+        topLeft = drawElement.topLeft,
+        contentSize = drawElement.size,
+    )
+    MarkerDashLineComponent(
+        drawElement = drawElement,
+        topLeft = drawElement.topLeft,
+        contentSize = drawElement.size,
+    )
+    RectMarkerComponent(
+        topLeft = drawElement.topLeft,
+        size = drawElement.size,
+        focusPoint = drawElement.focusPoint,
+        displayInfo = "(" + currentItem.high + "-" + currentItem.low + ")" +
+                "(" + currentItem.open + "-" + currentItem.close + ")"
+    )
 }
 
 @Composable
@@ -232,7 +225,7 @@ fun CandleStickChartScope.CandleStickLeftSideLabel(
 
 open class CandleStickBarSpec(
     val color: Color = Color.LightGray,
-    val pressedColor: Color = Color.Transparent,
+    val pressedColor: Color = Color.LightGray.copy(0.6f),
 ) : ChartComponentSpec
 
 class DarkCandleStickBarSpec(
@@ -274,7 +267,7 @@ fun CandleStickChartScope.CandleStickScrollableBarComponent(
             .anchor(ChartAnchor.Bottom)
             .height(120.dp)
             .clipToBounds(),
-        chartContext = context.minusKey(ChartInteractionHandler)
+        chartContext = context
     ) {
         LazyChartCanvas(
             modifier = Modifier.fillMaxSize()

@@ -1,13 +1,69 @@
 package me.jack.compose.chart.draw.cache
 
 import me.jack.compose.chart.animation.ChartAnimateState
+import me.jack.compose.chart.draw.DrawElement
 
-internal inline fun <reified T : ChartAnimateState<*, *>> DrawingKeyframeCache.getCachedValueOrPut(
-    noinline onHitCache: (T) -> Unit,
-    noinline defaultValue: (key: Class<*>) -> T
+internal fun <T : DrawElement> DrawingKeyframeCache.getCachedDrawElement(
+    key: Class<T>,
+    onHitCache: (T) -> Unit = { },
+    defaultValue: (key: Class<T>) -> T = ::defaultDrawingElementFactory
+): T {
+    return getCachedValueOrPut(
+        key = key,
+        onHitCache = onHitCache,
+        defaultValue = defaultValue
+    )
+}
+
+/**
+ * This reified type can not handle cases like:
+ *
+ * ```
+ * val currentDrawElement: DrawElement = DrawElement.Rect()
+ *
+ * private inline fun <reified T : DrawElement> T.copyDrawElement(): T {
+ *     val newDrawElement: T = drawingElementCache.getCachedDrawElement()
+ *     return newDrawElement.copy(this) as T
+ * }
+ *
+ * currentDrawElement.copyElement() error!! It trying to use `DrawElement` as Key
+ * ```
+ * It always return DrawElement, so if you got case like this, you are supposed to use [getCachedDrawElement] with specific key.
+ */
+inline fun <reified T : DrawElement> DrawingKeyframeCache.getCachedDrawElement(
+    noinline onHitCache: (T) -> Unit = { },
+    noinline defaultValue: (key: Class<T>) -> T = ::defaultDrawingElementFactory
 ): T {
     return getCachedValueOrPut(
         key = T::class.java,
+        onHitCache = onHitCache,
+        defaultValue = defaultValue
+    )
+}
+
+fun <T : DrawElement> defaultDrawingElementFactory(key: Class<T>): T {
+    @Suppress("UNCHECKED_CAST")
+    return when (key) {
+        DrawElement.Rect::class.java -> DrawElement.Rect()
+        DrawElement.Circle::class.java -> DrawElement.Circle()
+        DrawElement.Oval::class.java -> DrawElement.Oval()
+        DrawElement.Arc::class.java -> DrawElement.Arc()
+        DrawElement.Line::class.java -> DrawElement.Line()
+        DrawElement.Points::class.java -> DrawElement.Points()
+        DrawElement.RoundRect::class.java -> DrawElement.RoundRect()
+        DrawElement.Path::class.java -> DrawElement.Path()
+        DrawElement.DrawElementGroup::class.java -> DrawElement.DrawElementGroup()
+        else -> error("Does not support this class type:$key")
+    } as T
+}
+
+internal fun <V, T : ChartAnimateState<V, *>> DrawingKeyframeCache.getCachedAnimateState(
+    key: Class<T>,
+    onHitCache: (T) -> Unit,
+    defaultValue: (key: Class<T>) -> T
+): T {
+    return getCachedValueOrPut(
+        key = key,
         onHitCache = onHitCache,
         defaultValue = defaultValue
     )

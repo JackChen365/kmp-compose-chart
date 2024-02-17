@@ -162,12 +162,14 @@ fun buildDonutChartDataset(
 ): ChartDataset<DonutData> {
     return rememberChartDataGroup {
         repeat(groupCount) {
+            val groupColor = Color(Random.nextInt(0, 255), Random.nextInt(0, 255), Random.nextInt(0, 255), 0xFF)
             dataset("Group:$it") {
                 items(itemCount) { index ->
                     SimpleDonutData(
                         label = "Label:$index",
                         value = Random.nextInt(30, 1000).toFloat(),
-                        color = Color(Random.nextInt(0, 255), Random.nextInt(0, 255), Random.nextInt(0, 255), 0xFF)
+                        color = if (1 < groupCount) groupColor else
+                            Color(Random.nextInt(0, 255), Random.nextInt(0, 255), Random.nextInt(0, 255), 0xFF)
                     )
                 }
             }
