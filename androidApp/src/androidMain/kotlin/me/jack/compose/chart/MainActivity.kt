@@ -17,14 +17,14 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         initialAndDisplayComposeClassDemoList(
             getString(R.string.app_name),
-            DrawAnimationDemos::class.java,
             BarDemos::class.java,
             LineDemos::class.java,
             BubbleDemos::class.java,
             DonutDemos::class.java,
             PieDemos::class.java,
             CandleStickDemos::class.java,
-            CombinedChartDemos::class.java
+            CombinedChartDemos::class.java,
+            DrawAnimationDemos::class.java
         )
     }
 }

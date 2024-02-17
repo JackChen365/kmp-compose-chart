@@ -67,7 +67,6 @@ fun DesktopAppDemo(
                 val density = LocalDensity.current
                 val chartIcons = remember {
                     mutableListOf(
-                        "palette.svg",
                         "bar_chart.svg",
                         "line_chart.svg",
                         "bubble_chart.svg",
@@ -75,8 +74,8 @@ fun DesktopAppDemo(
                         "pie_chart2.svg",
                         "stock_chart.svg",
                         "table_chart_view.svg",
-                        "palette.svg",
                         "finance.svg",
+                        "palette.svg",
                         "stacked_bar_chart.svg",
                         "show_chart.svg"
                     )

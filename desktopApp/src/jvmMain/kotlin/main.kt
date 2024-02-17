@@ -19,7 +19,6 @@ fun main() = application {
         onCloseRequest = ::exitApplication
     ) {
         AppMainView(
-            DrawAnimationDemos::class.java,
             BarDemos::class.java,
             LineDemos::class.java,
             BubbleDemos::class.java,
@@ -27,7 +26,8 @@ fun main() = application {
             PieDemos::class.java,
             CandleStickDemos::class.java,
             CombinedChartDemos::class.java,
-            ChartThemeDemos::class.java
+            ChartThemeDemos::class.java,
+            DrawAnimationDemos::class.java,
         )
     }
 }
