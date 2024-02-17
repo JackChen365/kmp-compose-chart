@@ -77,7 +77,7 @@ private fun PieChartScope.PieComponent(
                 x = (size.width - size.minDimension) / 2,
                 y = (size.height - size.minDimension) / 2
             ),
-            size = arcSize whenPressedAnimateTo arcSize.times(spec.pressedScale)
+            size = arcSize
         )
         drawArc(
             color = pieData.color whenPressedAnimateTo pieData.color.copy(alpha = spec.pressedAlpha),

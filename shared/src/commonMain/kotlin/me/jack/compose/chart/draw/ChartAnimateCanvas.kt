@@ -130,7 +130,7 @@ fun AnimateCanvas(
     )
 }
 
-fun Modifier.animateInteraction(
+private fun Modifier.animateInteraction(
     interactionSource: MutableInteractionSource
 ) = pointerInput(Unit) {
     detectTapGestures(

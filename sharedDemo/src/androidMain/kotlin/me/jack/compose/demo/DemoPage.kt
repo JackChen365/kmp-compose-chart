@@ -1,260 +1,57 @@
 package me.jack.compose.demo
 
-import android.content.Context
-import android.content.ContextWrapper
-import android.os.Bundle
-import androidx.compose.animation.Crossfade
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.KeyboardArrowRight
-import androidx.compose.material.ripple.rememberRipple
-import androidx.compose.material3.Divider
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.fragment.app.FragmentActivity
-import androidx.fragment.app.FragmentContainerView
 import me.jack.compose.demo.builder.ComposableDemo
+import me.jack.compose.demo.builder.ComposableDemoBuilder
 import me.jack.compose.demo.builder.Demo
 import me.jack.compose.demo.builder.DemoCategory
-import me.jack.compose.demo.builder.DemoNavigator
-import me.jack.compose.demo.builder.HideTopBar
 
-@Composable
-fun AppDemo(
-    navigator: DemoNavigator,
-    demo: Demo,
-    onItemClick: OnDemoItemClickListener
+fun ComponentActivity.appMainView(
+    vararg classArray: Class<*>
 ) {
-    when (demo) {
-        is DemoCategory -> {
-            CategoryDemoPage(
-                navigator = navigator,
-                category = demo,
-                onItemClick = onItemClick
-            )
-        }
-
-        is ComposableDemo -> {
-            DemoPage(navigator = navigator, demoItem = demo)
-        }
-
-        is FragmentComposableDemo<*> -> {
-            FragmentDemoPage(navigator = navigator, demoItem = demo)
-        }
-
-        else -> Unit
-    }
-}
-
-@Composable
-private fun CategoryDemoPage(
-    navigator: DemoNavigator,
-    category: DemoCategory,
-    onItemClick: OnDemoItemClickListener
-) {
-    AppPage(
-        topBar = {
-            if (navigator.isRoot()) {
-                RootTopBar(category.title)
-            } else {
-                CategoryTopBar(navigator, category.title)
-            }
-        },
-        navigator = navigator
-    ) {
-        Crossfade(category, label = "") { category ->
-            LazyColumn(Modifier.padding(12.dp)) {
-                items(category.demoList) { item ->
-                    CategoryListItem(navigator, item, onItemClick)
-                    Divider(color = Color.LightGray)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun CategoryListItem(
-    navigator: DemoNavigator,
-    demo: Demo,
-    onItemClick: OnDemoItemClickListener
-) {
-    Row(modifier = Modifier
-        .semantics { testTag = demo.title }
-        .clickable(
-            interactionSource = MutableInteractionSource(),
-            indication = rememberRipple(color = Color.LightGray),
-            onClick = {
-                onItemClick.onClick(navigator, demo)
-            }
-        )
-    ) {
-        Text(
-            text = demo.title,
-            modifier = Modifier
-                .weight(1f)
-                .padding(16.dp)
-        )
-        if (demo is DemoCategory) {
-            Icon(
-                imageVector = Icons.Default.KeyboardArrowRight,
-                modifier = Modifier
-                    .align(Alignment.CenterVertically)
-                    .size(32.dp),
-                tint = Color.LightGray,
-                contentDescription = null
-            )
-        }
-    }
-}
-
-@Composable
-private fun DemoPage(
-    navigator: DemoNavigator,
-    demoItem: ComposableDemo
-) {
-    AppPage(
-        topBar = {
-            if (navigator.isRoot()) {
-                RootTopBar(demoItem.title)
-            } else {
-                CategoryTopBar(navigator, demoItem.title)
-            }
-        },
-        navigator = navigator
-    ) {
-        demoItem.demo.invoke()
-    }
-}
-
-@Composable
-private fun FragmentDemoPage(
-    navigator: DemoNavigator,
-    demoItem: FragmentComposableDemo<*>
-) {
-    var showTopBar by remember {
-        mutableStateOf(demoItem.fragmentClass.java.annotations.none { it is HideTopBar })
-    }
-    AppPage(
-        topBar = {
-            if (showTopBar) {
-                if (navigator.isRoot()) {
-                    RootTopBar(demoItem.title)
-                } else {
-                    CategoryTopBar(navigator, demoItem.title)
-                }
-            }
-        },
-        navigator = navigator
-    ) {
-        AndroidView(
-            modifier = Modifier.fillMaxSize(),
-            factory = { context ->
-                FragmentContainerView(context).also {
-                    it.id = android.R.id.home
-                }
-            }
-        )
-        val context = LocalContext.current
-        DisposableEffect(demoItem) {
-            val fragmentActivity = context.getFragmentActivity()
-            val fm = fragmentActivity.supportFragmentManager
-            val args = Bundle().apply {
-                putString("title", demoItem.title)
-            }
-            fm.addFragmentOnAttachListener { _, fragment ->
-                fragment.childFragmentManager.addOnBackStackChangedListener {
-                    showTopBar = (0 == fragment.childFragmentManager.backStackEntryCount)
-                }
-            }
-            fm.beginTransaction()
-                .add(android.R.id.home, demoItem.fragmentClass.java, args, null)
-                .commit()
-            onDispose {
-                fm.beginTransaction().remove(fm.findFragmentById(android.R.id.home)!!)
-                    .commitAllowingStateLoss()
-            }
-        }
-    }
-}
-
-@Composable
-private fun AppPage(
-    navigator: DemoNavigator,
-    topBar: @Composable () -> Unit = {},
-    content: @Composable (Demo) -> Unit
-) {
-    Scaffold(
-        topBar = topBar
-    ) { innerPadding ->
-        Box(modifier = Modifier.padding(innerPadding)) {
-            content(navigator.currentDemo)
-        }
+    val builder = ComposableDemoBuilder()
+    val demoList = builder.buildDemoList(classArray.toList())
+    val rootCategory = DemoCategory("#", demoList.toMutableList())
+    setContent {
+        AndroidAppDemo(rootCategory)
     }
 }
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-private fun CategoryTopBar(navigator: DemoNavigator, title: String) {
-    TopAppBar(
-        navigationIcon = {
-            IconButton(onClick = { navigator.popBackStack() }) {
-                Icon(
-                    imageVector = Icons.Default.ArrowBack,
-                    contentDescription = null,
-                    tint = Color.White,
-                )
-            }
-        },
-        title = {
-            Text(
-                modifier = Modifier.padding(start = 16.dp),
-                text = title,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Medium,
-                color = Color.White
-            )
-        },
-        modifier = Modifier.shadow(8.dp),
-        colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = MaterialTheme.colorScheme.primary)
-    )
-}
-
-@Composable
-@OptIn(ExperimentalMaterial3Api::class)
-private fun RootTopBar(title: String) {
+private fun DemoTopBar(title: String) {
     TopAppBar(
         title = {
             Text(
@@ -270,17 +67,120 @@ private fun RootTopBar(title: String) {
     )
 }
 
-fun Context.getFragmentActivity(): FragmentActivity {
-    var currentContext = this
-    while (currentContext is ContextWrapper) {
-        if (currentContext is FragmentActivity) {
-            return currentContext
+@Composable
+fun AndroidAppDemo(
+    rootCategory: DemoCategory
+) {
+    Scaffold(
+        topBar = {}
+    ) { paddings ->
+        Column(modifier = Modifier.padding(paddings)) {
+            var currentDemo by remember {
+                val first = rootCategory.demoList.firstOrNull()
+                mutableStateOf(first)
+            }
+            Box(
+                modifier = Modifier.fillMaxWidth().weight(1f)
+            ) {
+                val demoList = remember(currentDemo) {
+                    val demoList = mutableListOf<ComposableDemo>()
+                    if (null != currentDemo) {
+                        findDemoFromCategory(currentDemo!!, demoList)
+                    }
+                    demoList
+                }
+                Column(
+                    modifier = Modifier
+                ) {
+                    if (demoList.isNotEmpty()) {
+                        DemoTopBar(demoList.first().title)
+                    }
+                    val verticalScrollState = rememberScrollState()
+                    Column (modifier = Modifier.verticalScroll(verticalScrollState)){
+                        demoList.forEach { demo ->
+                            Text(
+                                text = demo.title,
+                                modifier = Modifier
+                                    .background(color = Color.LightGray.copy(0.4f))
+                                    .fillMaxWidth().padding(8.dp)
+                            )
+                            Box(modifier = Modifier.padding(top = 12.dp, bottom = 12.dp)) {
+                                demo.demo()
+                            }
+                        }
+                    }
+                }
+            }
+            NavigationBar(
+                modifier = Modifier.horizontalScroll(state = rememberScrollState())
+            ) {
+                val chartIcons = remember {
+                    mutableListOf(
+                        R.drawable.bar_chart,
+                        R.drawable.line_chart,
+                        R.drawable.bubble_chart,
+                        R.drawable.donut_chart,
+                        R.drawable.pie_chart2,
+                        R.drawable.stock_chart,
+                        R.drawable.table_chart_view,
+                        R.drawable.finance,
+                        R.drawable.palette,
+                        R.drawable.stacked_bar_chart,
+                        R.drawable.show_chart
+                    )
+                }
+                rootCategory.demoList.forEachIndexed { index, demo ->
+                    NavigationRailItem(
+                        modifier = Modifier.width(60.dp),
+                        selected = currentDemo == demo,
+                        icon = {
+                            Icon(
+                                painter = painterResource(chartIcons[index]),
+                                contentDescription = "Sample",
+                                modifier = Modifier.size(24.dp)
+                            )
+                        },
+                        label = {
+                            Text(
+                                text = demo.title,
+                                maxLines = 1,
+                                modifier = Modifier.padding(start = 12.dp, end = 12.dp)
+                            )
+                        },
+                        alwaysShowLabel = false,
+                        onClick = {
+                            currentDemo = demo
+                        }
+                    )
+                }
+            }
         }
-        currentContext = currentContext.baseContext
     }
-    error("Can not find the activity.")
 }
 
-fun interface OnDemoItemClickListener {
-    fun onClick(navigator: DemoNavigator, demo: Demo)
+private fun findDemoFromCategory(demo: Demo, demoList: MutableList<ComposableDemo>) {
+    if (demo is DemoCategory) {
+        demo.demoList.forEach { subDemo ->
+            findDemoFromCategory(subDemo, demoList)
+        }
+    } else if (demo is ComposableDemo) {
+        demoList.add(demo)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RootTopBar(title: String) {
+    TopAppBar(
+        title = {
+            Text(
+                modifier = Modifier.padding(start = 16.dp),
+                text = title,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color.White
+            )
+        },
+        modifier = Modifier.shadow(4.dp)
+    )
 }

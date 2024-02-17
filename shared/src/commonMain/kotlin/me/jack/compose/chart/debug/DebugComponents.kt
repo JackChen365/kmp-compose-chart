@@ -99,7 +99,8 @@ fun SingleChartScope<*>.DebugArcDrawElementComponent(
                     "CurrentAngle:$currentAngle \n" +
                     "StartAngle:${drawElement.startAngle} \n" +
                     "EndAngle:${drawElement.startAngle + drawElement.sweepAngle} \n" +
-                    "Center:$center",
+                    "Center:$center \n" +
+                    "Offset:$offset",
             modifier = Modifier.padding(12.dp).align(Alignment.TopStart)
         )
     }

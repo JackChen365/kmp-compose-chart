@@ -11,6 +11,7 @@ import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
@@ -57,8 +58,8 @@ import me.jack.compose.chart.context.isElementAvailable
 import me.jack.compose.chart.context.rememberScrollDelegate
 import me.jack.compose.chart.context.requireChartScrollState
 import me.jack.compose.chart.context.requireChartZoomState
-import me.jack.compose.chart.draw.animateInteraction
 import me.jack.compose.chart.draw.rememberInteractionStates
+import me.jack.compose.chart.interaction.ChartHoverInteraction
 import me.jack.compose.chart.interaction.ChartTapInteraction
 import me.jack.compose.chart.interaction.collectDrawElementAsState
 import me.jack.compose.chart.measure.ChartContentMeasurePolicy
@@ -207,8 +208,7 @@ fun <T> SingleChartScope<T>.ChartBox(
         modifier = modifier
             .fillMaxSize()
             .clipToBounds()
-            .animateInteraction(interactionSource)
-            .chartTapGesture(interactionSource)
+            .chartInteraction(interactionSource)
             .chartZoom(chartContext) { _, zoom ->
                 val currentChartScrollState = chartScrollState
                 if (null != currentChartScrollState) {
@@ -226,6 +226,46 @@ fun <T> SingleChartScope<T>.ChartBox(
             ),
         content = content
     )
+}
+
+fun Modifier.chartInteraction(
+    interactionSource: MutableInteractionSource
+) = pointerInput(Unit) {
+    detectTapGestures(
+        onPress = { offset ->
+            val press = PressInteraction.Press(offset)
+            interactionSource.emit(press)
+            if (tryAwaitRelease()) {
+                interactionSource.emit(PressInteraction.Release(press))
+            } else {
+                interactionSource.emit(PressInteraction.Cancel(press))
+            }
+        },
+        onDoubleTap = { offset ->
+            interactionSource.tryEmit(ChartTapInteraction.DoubleTap(offset))
+        },
+        onTap = { offset ->
+            interactionSource.tryEmit(ChartTapInteraction.Tap(offset))
+        },
+        onLongPress = { offset ->
+            interactionSource.tryEmit(ChartTapInteraction.LongPress(offset))
+        }
+    )
+}.onHoverPointerEvent { event ->
+    val last = event.changes.lastOrNull()
+    if (null != last) {
+        when (event.type) {
+            PointerEventType.Enter ->
+                interactionSource.tryEmit(ChartHoverInteraction.Enter(last.position))
+
+            PointerEventType.Exit ->
+                interactionSource.tryEmit(ChartHoverInteraction.Exit(last.position))
+
+            PointerEventType.Move -> {
+                interactionSource.tryEmit(ChartHoverInteraction.Move(last.position))
+            }
+        }
+    }
 }
 
 @Composable
@@ -290,8 +330,7 @@ private fun CombinedChartContent(
         modifier = modifier
             .fillMaxSize()
             .clipToBounds()
-            .chartTapGesture(interactionSource)
-            .animateInteraction(interactionSource)
+            .chartInteraction(interactionSource)
             .chartZoom(chartContext) { _, zoom ->
                 with(chartCombinedScope) {
                     val currentChartScrollState = chartScrollState
@@ -315,29 +354,6 @@ private fun CombinedChartContent(
         }
     }
     content?.invoke(chartCombinedScope)
-}
-
-/**
- * We don't use composedModifier, this is the better way that official team suggested
- * https://developer.android.com/jetpack/compose/custom-modifiers
- */
-@Composable
-private fun Modifier.chartTapGesture(
-    interactionSource: MutableInteractionSource
-): Modifier {
-    return pointerInput(Unit) {
-            detectTapGestures(
-                onDoubleTap = { offset ->
-                    interactionSource.tryEmit(ChartTapInteraction.DoubleTap(offset))
-                },
-                onTap = { offset ->
-                    interactionSource.tryEmit(ChartTapInteraction.Tap(offset))
-                },
-                onLongPress = { offset ->
-                    interactionSource.tryEmit(ChartTapInteraction.LongPress(offset))
-                }
-            )
-        }
 }
 
 /**

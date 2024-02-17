@@ -37,6 +37,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import me.jack.compose.demo.builder.ComposableDemo
+import me.jack.compose.demo.builder.ComposableDemoBuilder
 import me.jack.compose.demo.builder.Demo
 import me.jack.compose.demo.builder.DemoCategory
 
@@ -44,7 +45,8 @@ import me.jack.compose.demo.builder.DemoCategory
 fun AppMainView(
     vararg classArray: Class<*>
 ) {
-    val demoList = buildComposableDemoList(*classArray)
+    val builder = ComposableDemoBuilder()
+    val demoList = builder.buildDemoList(classArray.toList())
     val rootCategory = DemoCategory("#", demoList.toMutableList())
     DesktopAppDemo(rootCategory)
 }

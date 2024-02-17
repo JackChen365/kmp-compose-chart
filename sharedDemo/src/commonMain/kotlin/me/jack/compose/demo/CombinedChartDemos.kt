@@ -79,7 +79,7 @@ class CombinedChartDemos {
     private fun buildCancelStickDataset(): ChartDataset<CandleData> {
         return rememberChartMutableDataGroup {
             dataset("Group") {
-                items(500) {
+                items(100) {
                     val low = Random.nextInt(50)
                     val high = Random.nextInt(low + 10, 100)
                     val start = Random.nextInt(low, low + (high - low) / 2)
@@ -102,7 +102,7 @@ class CombinedChartDemos {
         repeat(3) {
             val barDataList = mutableListOf<BarData>()
             val groupColor = Color(Random.nextInt(0, 255), Random.nextInt(0, 255), Random.nextInt(0, 255), 0xFF)
-            repeat(500) {
+            repeat(100) {
                 barDataList.add(
                     SimpleBarData(
                         value = 10 + Random.nextInt(10, 50).toFloat(),
@@ -121,7 +121,7 @@ class CombinedChartDemos {
             repeat(3) { groupIndex ->
                 val groupColor = Color(Random.nextInt(0, 255), Random.nextInt(0, 255), Random.nextInt(0, 255), 0xFF)
                 dataset("Group:$groupIndex") {
-                    items(500) {
+                    items(100) {
                         SimpleBubbleData(
                             label = "Label$groupIndex-$it",
                             value = Random.nextInt(10, 100).toFloat(),

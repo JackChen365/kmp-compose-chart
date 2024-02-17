@@ -55,8 +55,7 @@ class PieDemos {
                 Spacer(modifier = Modifier.height(8.dp))
                 PieChart(
                     modifier = Modifier
-                        .height(240.dp)
-                        .padding(12.dp),
+                        .height(240.dp),
                     chartDataset = buildPieChartDataset(
                         groupCount = 3,
                         itemCount = 5

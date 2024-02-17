@@ -100,25 +100,23 @@ open class ChartMutableInteractionStates(
 private fun InteractionSource.collectIsPressedAsState(): BooleanInteractionState {
     val pressState by remember { mutableStateOf(MutableBooleanInteractionState()) }
     LaunchedEffect(this) {
-        val pressInteractions = mutableListOf<PressInteraction.Press>()
         interactions.collect { interaction ->
             when (interaction) {
                 is PressInteraction.Press -> {
-                    pressInteractions.add(interaction)
+                    pressState.state = true
                     pressState.location = interaction.pressPosition
                 }
 
                 is PressInteraction.Release -> {
-                    pressInteractions.remove(interaction.press)
+                    pressState.state = false
                     pressState.location = Offset.Unspecified
                 }
 
                 is PressInteraction.Cancel -> {
-                    pressInteractions.remove(interaction.press)
+                    pressState.state = false
                     pressState.location = Offset.Unspecified
                 }
             }
-            pressState.state = pressInteractions.isNotEmpty()
         }
     }
     return pressState

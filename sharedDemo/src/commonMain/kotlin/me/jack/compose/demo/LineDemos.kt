@@ -51,6 +51,28 @@ import me.jack.compose.demo.data.buildLineDataset
 import kotlin.random.Random
 
 class LineDemos {
+    @Composable
+    fun LineDataAnimationDemo() {
+        val scope = rememberCoroutineScope()
+        Column {
+            LineChart(
+                modifier = Modifier.height(240.dp),
+                contentMeasurePolicy = rememberFixedOverlayContentMeasurePolicy(32.dp.toPx()),
+                chartDataset = buildAnimateLineDataset(scope = scope, itemCount = 100)
+            ) {
+                LaunchAnimation(scope)
+                LineChartContent()
+            }
+            CurveLineChart(
+                modifier = Modifier.height(240.dp),
+                contentMeasurePolicy = rememberFixedOverlayContentMeasurePolicy(32.dp.toPx()),
+                chartDataset = buildAnimateLineDataset(scope = scope, itemCount = 50)
+            ) {
+                LaunchAnimation(scope)
+                CurveLineChartContent()
+            }
+        }
+    }
 
     @Composable
     fun LineChartDemo() {
@@ -97,7 +119,6 @@ class LineDemos {
             }
         }
     }
-
 
     @Composable
     fun LineChartWithMutableDataDemo() {
@@ -219,29 +240,6 @@ class LineDemos {
                 ) { Text(text = "Clicked item value:${currentItems?.joinToString { it.value.toString() }}") }
             }
         }
-
-        @Composable
-        fun LineDataAnimationDemo() {
-            val scope = rememberCoroutineScope()
-            Column {
-                LineChart(
-                    modifier = Modifier.height(240.dp),
-                    contentMeasurePolicy = rememberFixedOverlayContentMeasurePolicy(32.dp.toPx()),
-                    chartDataset = buildAnimateLineDataset(scope = scope, itemCount = 5000)
-                ) {
-                    LaunchAnimation(scope)
-                    LineChartContent()
-                }
-                CurveLineChart(
-                    modifier = Modifier.height(240.dp),
-                    contentMeasurePolicy = rememberFixedOverlayContentMeasurePolicy(32.dp.toPx()),
-                    chartDataset = buildAnimateLineDataset(scope = scope, itemCount = 5000)
-                ) {
-                    LaunchAnimation(scope)
-                    CurveLineChartContent()
-                }
-            }
-        }
     }
 
     @Composable
@@ -264,7 +262,7 @@ class LineDemos {
     fun StockLineDataAnimationDemo() {
         val dataset = buildLineDataset(
             groupCount = 3,
-            itemCount = 500
+            itemCount = 100
         )
         Column {
             StockLineChart(

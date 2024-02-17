@@ -261,7 +261,7 @@ class BarDemos {
     @Composable
     fun AnimatableBarChartDemo() {
         val scope = rememberCoroutineScope()
-        val barDataset = buildAnimateBarDataset(itemCount = 5000)
+        val barDataset = buildAnimateBarDataset(itemCount = 100)
         Box(modifier = Modifier.fillMaxSize()) {
             BarChart(
                 modifier = Modifier.height(360.dp),

@@ -95,7 +95,7 @@ fun DonutChartScope.DonutComponent(
                 x = (size.width - arcSize.width) / 2,
                 y = (size.height - arcSize.height) / 2
             ),
-            size = arcSize whenPressedAnimateTo arcSize.times(spec.pressedScale),
+            size = arcSize,
             strokeWidth = strokeWidthPx
         )
         drawArc(
