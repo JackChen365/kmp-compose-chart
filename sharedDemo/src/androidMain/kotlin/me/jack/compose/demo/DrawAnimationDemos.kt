@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ImageBitmap
@@ -31,7 +32,7 @@ class DrawAnimationDemos {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(400.dp)
+                .height(600.dp)
         ) {
             val textMeasurer = rememberTextMeasurer()
             AnimateCanvas(
@@ -185,6 +186,28 @@ class DrawAnimationDemos {
                             Offset(x = 240.dp.toPx(), y = 360.dp.toPx()),
                     strokeWidth = 20.dp.toPx() whenPressedAnimateTo 32.dp.toPx()
                 )
+
+                drawRect(
+                    color = Color.Red,
+                    topLeft = Offset(20.dp.toPx(), 360.dp.toPx()),
+                    size = Size(200.dp.toPx(), 200.dp.toPx()),
+                    style = Stroke(1.dp.toPx())
+                )
+                clickableGroup(
+                    topLeft = Offset(20.dp.toPx(), 360.dp.toPx()),
+                    size = Size(200.dp.toPx(), 200.dp.toPx())
+                ) {
+                    drawCircle(
+                        color = Color.Red whenPressedAnimateTo Color.Yellow,
+                        center = Offset(80.dp.toPx(), 420.dp.toPx()),
+                        radius = 40.dp.toPx()
+                    )
+                    drawCircle(
+                        color = Color.Red whenPressedAnimateTo Color.Yellow,
+                        center = Offset(160.dp.toPx(), 420.dp.toPx()),
+                        radius = 40.dp.toPx()
+                    )
+                }
             }
         }
     }

@@ -144,6 +144,9 @@ class CombinedChartDemos {
             componentContent = {
                 candleStickChart(cancelStickDataset)
                 stockLineChart(buildLineChartDatasetFromCandleData(cancelStickDataset))
+                val barChartDataset = buildBarChartDataset()
+                barChart(buildBarChartDataset())
+                lineChart(buildLineChartDatasetFromBarData(barChartDataset))
             }
         ) {
             ChartGridDividerComponent(

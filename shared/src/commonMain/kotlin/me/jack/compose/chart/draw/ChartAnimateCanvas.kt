@@ -75,6 +75,7 @@ import me.jack.compose.chart.draw.cache.DrawingKeyframeCache
 import me.jack.compose.chart.draw.cache.getCachedAnimateState
 import me.jack.compose.chart.draw.cache.getCachedDrawElement
 import me.jack.compose.chart.interaction.ChartHoverInteraction
+import me.jack.compose.chart.interaction.ChartTapInteraction
 
 /**
  * AnimateCanvas is a canvas that could draw any thing with animation.
@@ -130,7 +131,7 @@ fun AnimateCanvas(
     )
 }
 
-private fun Modifier.animateInteraction(
+fun Modifier.animateInteraction(
     interactionSource: MutableInteractionSource
 ) = pointerInput(Unit) {
     detectTapGestures(
@@ -142,6 +143,15 @@ private fun Modifier.animateInteraction(
             } else {
                 interactionSource.emit(PressInteraction.Cancel(press))
             }
+        },
+        onDoubleTap = { offset ->
+            interactionSource.tryEmit(ChartTapInteraction.DoubleTap(offset))
+        },
+        onTap = { offset ->
+            interactionSource.tryEmit(ChartTapInteraction.Tap(offset))
+        },
+        onLongPress = { offset ->
+            interactionSource.tryEmit(ChartTapInteraction.LongPress(offset))
         }
     )
 }.onHoverPointerEvent { event ->
@@ -183,7 +193,7 @@ open class ChartAnimateDrawScope(
     private var animateStateUsedCount: Int = 0
     private var children: ArrayDeque<DrawElement> = ArrayDeque()
 
-    fun reset() {
+    open fun reset() {
         children.clear()
         animateStateTable.clear()
         animateStateUsedCount = 0
@@ -354,6 +364,30 @@ open class ChartAnimateDrawScope(
                     }
                 }
             }
+        }
+    }
+
+    inline fun clickableGroup(
+        topLeft: Offset,
+        size: Size,
+        onDraw: () -> Unit
+    ) {
+        if (isPreLayout()) {
+            try {
+                val drawElementGroup: DrawElement.DrawElementGroup = obtainDrawElement()
+                drawElementGroup.topLeft = topLeft
+                drawElementGroup.size = size
+                drawElementGroup.isActivated = true
+                drawElementGroup.children.resetPointer()
+                addChildDrawElement(drawElementGroup)
+                setCurrentDrawElementGroup(drawElementGroup)
+                onDraw()
+            } finally {
+                setCurrentDrawElementGroup(null)
+            }
+        } else {
+            onDraw()
+            moveToNextDrawElement()
         }
     }
 

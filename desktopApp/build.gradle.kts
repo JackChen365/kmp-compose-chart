@@ -21,8 +21,13 @@ kotlin {
 compose.desktop {
     application {
         mainClass = "MainKt"
-
+        buildTypes.release {
+            proguard {
+                configurationFiles.from("compose-desktop.pro")
+            }
+        }
         nativeDistributions {
+            modules("java.sql")
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "me.jack.compose.chart"
             packageVersion = "1.0.0"

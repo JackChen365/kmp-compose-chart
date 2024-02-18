@@ -190,7 +190,7 @@ fun SingleChartScope<LineData>.LineComponent(
                     y = size.height - current.value * lineItemSize,
                 )
             )
-            clickableGroup {
+            clickableGroup(currentLeftTopOffset, childSize) {
                 drawCircle(
                     color = current.color whenPressedAnimateTo current.color.copy(alpha = lineSpec.pressAlpha),
                     radius = circleRadiusPx whenPressedAnimateTo circleRadiusPx * 1.4f,
@@ -209,7 +209,7 @@ fun SingleChartScope<LineData>.LineComponent(
                 y = size.height - next.value * lineItemSize,
             )
         )
-        clickableGroup(topLeft = nextLeftTopOffset) {
+        clickableGroup(nextLeftTopOffset, childSize) {
             drawCircle(
                 color = current.color whenPressedAnimateTo next.color.copy(alpha = lineSpec.pressAlpha),
                 radius = circleRadiusPx whenPressedAnimateTo circleRadiusPx * 1.4f,
@@ -333,7 +333,7 @@ private fun SingleChartScope<LineData>.HorizontalCurveLine(
                 size = Size(width = childSize.width, size.height),
                 focusPoint = currentOffset
             )
-            clickableGroup {
+            clickableGroup(currentLeftTopOffset, childSize) {
                 drawCircle(
                     color = current.color whenPressedAnimateTo current.color.copy(alpha = spec.pressAlpha),
                     radius = 0f whenPressedAnimateTo spec.circleRadius.toPx(),
@@ -346,7 +346,7 @@ private fun SingleChartScope<LineData>.HorizontalCurveLine(
                     size = Size(width = childSize.width, size.height),
                     focusPoint = nextChildCenterOffset.copy(y = nextOffset.y)
                 )
-                clickableGroup(topLeft = nextChildCenterOffset) {
+                clickableGroup(nextChildCenterOffset, childSize) {
                     drawCircle(
                         color = next.color whenPressedAnimateTo next.color.copy(alpha = spec.pressAlpha),
                         radius = 0f whenPressedAnimateTo spec.circleRadius.toPx(),

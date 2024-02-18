@@ -26,7 +26,6 @@ import me.jack.compose.chart.scope.ChartDataset
 import me.jack.compose.chart.scope.ChartDatasetAccessScope
 import me.jack.compose.chart.scope.ChartDatasetAccessScopeInstance
 import me.jack.compose.chart.scope.SingleChartScope
-import me.jack.compose.chart.scope.drawElementInteraction
 import me.jack.compose.chart.scope.fastForEach
 import me.jack.compose.chart.scope.fastForEachWithNext
 import me.jack.compose.chart.scope.getChartGroupData
@@ -180,14 +179,19 @@ class ChartDrawScope<T>(
     val chartContext: ChartContext = singleChartScope.chartContext
     val chartDataset: ChartDataset<T> = singleChartScope.chartDataset
     private val interactionSource: MutableInteractionSource = singleChartScope.interactionSource
-    private val drawElementInteraction: DrawElementInteraction
-        get() = singleChartScope.drawElementInteraction
 
     /**
      * Interaction drawing element cache pool, we can not mix this pool with screen drawing element.
      * The [drawingElementCache] will be reused per frame but only for interaction, we are supposed to keep it until user change his behavior
      */
     private val interactionDrawingElementCache = DrawingKeyframeCache()
+    private var currentIndicationElement: DrawElement = DrawElement.None
+
+
+    override fun reset() {
+        super.reset()
+        currentIndicationElement = DrawElement.None
+    }
 
     val currentLeftTopOffset: Offset
         get() {
@@ -233,30 +237,6 @@ class ChartDrawScope<T>(
                 y = childSize.height + childDividerSize
             )
         }
-
-    inline fun clickableGroup(
-        topLeft: Offset = currentLeftTopOffset,
-        size: Size = childSize,
-        onDraw: () -> Unit
-    ) {
-        if (isPreLayout()) {
-            try {
-                val drawElementGroup: DrawElement.DrawElementGroup = obtainDrawElement()
-                drawElementGroup.topLeft = topLeft
-                drawElementGroup.size = size
-                drawElementGroup.isActivated = true
-                drawElementGroup.children.resetPointer()
-                addChildDrawElement(drawElementGroup)
-                setCurrentDrawElementGroup(drawElementGroup)
-                onDraw()
-            } finally {
-                setCurrentDrawElementGroup(null)
-            }
-        } else {
-            onDraw()
-            moveToNextDrawElement()
-        }
-    }
 
     fun interactionArc(
         topLeft: Offset,
@@ -366,23 +346,17 @@ class ChartDrawScope<T>(
     }
 
     private fun detectChartInteraction(drawElement: DrawElement) {
-        if (!drawElement.isHoveredOrPressed()) return
-        val elementInteraction = drawElementInteraction
+        if (!drawElement.isHoveredOrPressed() || !currentIndicationElement.isNone()) return
         val chartGroupData = chartDataset.getChartGroupData(index)
-        var oldElement: DrawElement = DrawElement.None
-        if (elementInteraction is DrawElementInteraction.Element<*, *>) {
-            oldElement = elementInteraction.drawElement
-        }
-        if (oldElement != drawElement) {
-            val newDrawElement = drawElement.copyInteractionDrawElement()
-            interactionSource.tryEmit(
-                DrawElementInteraction.Element(
-                    drawElement = newDrawElement,
-                    currentItem = currentItem(),
-                    currentGroupItems = chartGroupData
-                )
+        val newDrawElement = drawElement.copyInteractionDrawElement()
+        currentIndicationElement = newDrawElement
+        interactionSource.tryEmit(
+            DrawElementInteraction.Element(
+                drawElement = newDrawElement,
+                currentItem = currentItem(),
+                currentGroupItems = chartGroupData
             )
-        }
+        )
     }
 
     private fun detectClickableInteraction(
