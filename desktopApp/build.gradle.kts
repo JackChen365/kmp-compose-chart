@@ -21,6 +21,7 @@ kotlin {
 compose.desktop {
     application {
         mainClass = "MainKt"
+        // https://github.com/JetBrains/compose-multiplatform/issues/2668
         buildTypes.release {
             proguard {
                 configurationFiles.from("compose-desktop.pro")
