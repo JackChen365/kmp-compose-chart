@@ -29,11 +29,11 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: desktop-build-logs
-          path: .desktopApp/build/compose/logs/proguardReleaseJars/
+          path: ${{ github.workspace }}/desktopApp/build/compose/logs/proguardReleaseJars/
 
       - name: Upload DMG file
         if: success()
         uses: actions/upload-artifact@v2
         with:
           name: desktop-app-release.dmg
-          path: ./desktopApp/build/distributions/desktopApp-release.dmg
+          path: ${{ github.workspace }}/desktopApp/build/distributions/desktopApp-release.dmg
