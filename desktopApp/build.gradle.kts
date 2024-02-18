@@ -2,7 +2,7 @@ import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
 plugins {
     kotlin("multiplatform")
-    kotlin("plugin.serialization") version "1.9.21"
+    kotlin("plugin.serialization")
     id("org.jetbrains.compose")
 }
 
@@ -23,10 +23,13 @@ compose.desktop {
     application {
         mainClass = "MainKt"
         // https://github.com/JetBrains/compose-multiplatform/issues/2668
-        buildTypes.release {
-            proguard {
-                configurationFiles.from("compose-desktop.pro")
-            }
+//        buildTypes.release {
+//            proguard {
+//                configurationFiles.from("compose-desktop.pro")
+//            }
+//        }
+        buildTypes.release.proguard {
+            optimize.set(false)
         }
         nativeDistributions {
             modules("java.sql")
