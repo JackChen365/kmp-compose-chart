@@ -17,7 +17,8 @@ jobs:
       - name: Set up Java
         uses: actions/setup-java@v3
         with:
-          java-version: 17
+          distribution: 'temurin'
+          java-version: '17'
 
       - name: Build and package desktop app
         run: |
