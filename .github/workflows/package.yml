@@ -1,0 +1,105 @@
+name: Package
+
+on:
+  workflow_dispatch:
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  release_desktop:
+    name: Package Desktop App
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ macos-latest, ubuntu-latest, windows-latest ]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate Gradle Wrapper
+        uses: gradle/wrapper-validation-action@v3
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'adopt'
+          cache: gradle
+
+      - name: Make gradle executable
+        run: chmod +x ./gradlew
+
+      - name: Checkout Gradle Build Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            !~/.gradle/wrapper/dists/**/gradle*.zip
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      - name: Build app
+        run: ./gradlew :desktopApp:assemble --stacktrace
+
+      - name: Build Release App
+        run: |
+          ./gradlew packageUberJarForCurrentOS
+          ./gradlew package
+
+      - name: Archive Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: distributable-${{ matrix.os }}
+          if-no-files-found: ignore
+          path: |
+            desktopApp/build/**/*.deb
+            desktopApp/build/**/*.msi
+            desktopApp/build/**/*.dmg
+            desktopApp/build/compose/jars/*.jar
+
+      - name: Upload build failure logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs-${{ matrix.os }}
+          path: |
+            **/build/**/*.log
+            **/build/**/*.txt
+            **/build/compose/logs/**/*.log
+            **/build/compose/logs/**/*.txt
+
+  release_android:
+    name: Package Android App
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate Gradle Wrapper
+        uses: gradle/wrapper-validation-action@v3
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'adopt'
+          cache: gradle
+
+      - name: Make gradle executable
+        run: chmod +x ./gradlew
+
+      - name: Build app
+        run: ./gradlew :androidApp:assembleRelease --stacktrace
+
+      - name: Archive Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-app
+          if-no-files-found: ignore
+          path: androidApp/build/outputs/apk/release/*.apk
