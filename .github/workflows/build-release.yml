@@ -9,13 +9,13 @@ on:
         default: ':desktopApp:packageReleaseDmg'
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, macOS, ARM64, mini-m4, mini-macos]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: Set up Java
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
@@ -26,14 +26,14 @@ jobs:
 
       - name: Upload build log
         if: failure()
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: desktop-build-logs
           path: ${{ github.workspace }}/desktopApp/build/compose/logs/proguardReleaseJars/
 
       - name: Upload DMG file
         if: success()
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: desktop-app-release.dmg
           path: ${{ github.workspace }}/desktopApp/build/distributions/desktopApp-release.dmg

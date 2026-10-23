@@ -14,7 +14,14 @@ jobs:
       fail-fast: false
       matrix:
         os: [ macos-latest, ubuntu-latest, windows-latest ]
-    runs-on: ${{ matrix.os }}
+        include:
+          - os: macos-latest
+            runner: [self-hosted, macOS, ARM64, mini-m4, mini-macos]
+          - os: ubuntu-latest
+            runner: ubuntu-latest
+          - os: windows-latest
+            runner: windows-latest
+    runs-on: ${{ matrix.runner }}
 
     steps:
       - name: Checkout code
